@@ -1,0 +1,144 @@
+---
+name: qa-decompose-requirements
+description: Read a requirement source (a document or a Jira user story via the Atlassian MCP) and decompose it into structured, traceable, testable requirements that downstream test-case skills can consume. Use when a QA engineer needs to turn a story, spec, or acceptance criteria into atomic requirements, business rules, candidate test conditions, NFRs, and an explicit gaps list before any test cases are written.
+---
+
+# QA Decompose Requirements
+
+## Purpose
+
+This skill turns a raw requirement source into a clean, decomposed, traceable requirements artifact.
+
+It is the first stage of the QA test authoring suite. Its output is the single source of truth that the `qa-create-test-cases`, `qa-review-test-cases`, and `qa-orchestrate-test-cases` skills consume.
+
+This skill must:
+1. resolve the requirement source (document or Jira user story),
+2. retrieve the full context for that source,
+3. confirm with the user that the retrieved context is complete,
+4. decompose the source into atomic, testable, ID-tagged requirements,
+5. surface gaps and open questions instead of inventing answers,
+6. persist the decomposition as a first-class artifact (or output it inline on request).
+
+This skill does not write test cases. It prepares the ground for them.
+
+## Use this skill when
+
+Use this skill when the task is about:
+- reading a Jira user story (by key, via the Atlassian MCP) and breaking it down for QA
+- reading a requirements document or spec and breaking it down for QA
+- producing atomic testable requirements with stable traceability IDs
+- extracting acceptance criteria, business rules, candidate test conditions, and NFRs
+- identifying missing information before test design starts
+- refreshing or refactoring an existing `requirements.md` when the source changed
+
+Do not use this skill to author, score, or sync test cases. Route those to the test-case skills and `qa-xray-sync`.
+
+## Operating philosophy
+
+Test artifacts are first-class code files. The requirements decomposition is treated with the same rigor as source code: atomic units, stable identifiers, explicit traceability, no invented behavior, and a review-before-execute discipline. Bring the developer's state of mind to QA.
+
+## Interaction contract
+
+This skill is interactive. It always follows this base flow:
+
+1. **Load** — the skill is triggered by the user prompt.
+2. **Ask guiding questions** — resolve only what the prompt did not already specify (see below). Never assume when the answer changes the output.
+3. **Show a plan** — describe exactly what will be retrieved, decomposed, and written.
+4. **Wait for approval** — do not write or fetch destructive changes before the user approves.
+5. **Execute** — perform the decomposition and persist artifacts.
+
+Whenever the skill is in doubt about scope, source completeness, depth, or IDs, it must stop and ask the user rather than guess.
+
+## Guiding questions to resolve at load
+
+Ask only the ones the prompt left open:
+
+1. **Source** — Is the input a Jira issue key (via Atlassian MCP) or a document (path/URL)? If a document, which format and where?
+2. **Jira pull scope** — Default is to pull the story description, the acceptance-criteria field, linked/child issues, and comments. Always confirm this scope with the user before pulling. After retrieval, show what was pulled and confirm it is complete.
+3. **Depth** — If the user did not specify, present two choices:
+   - **Lightweight** — atomic testable requirements plus acceptance criteria.
+   - **Full breakdown + traceability** — adds business rules, candidate test conditions (positive / negative / edge), NFRs, and a gaps list.
+   Both modes attach IDs.
+4. **Workspace root** — Default is `./qa-workspace`. Persist by default (hybrid). If the user asks for in-conversation-only, do not write files.
+5. **Scope** — Single story/document, or a batch/epic. In batch mode, keep each item in its own story folder.
+
+## Source retrieval
+
+### Jira source
+
+- Use the Atlassian MCP to fetch the issue by key.
+- After confirming pull scope, retrieve: description, acceptance criteria, linked/child issues, and comments.
+- Present a short summary of what was retrieved and ask the user to confirm completeness before decomposing.
+- Never fabricate acceptance criteria or requirements that are not grounded in the retrieved content. Missing content becomes a gap, not an invention.
+
+### Document source
+
+- Read the document from the provided path or URL.
+- If the document is large or multi-section, confirm which section(s) are in scope.
+- Treat headings, acceptance criteria, and business rules already present in the document as authoritative.
+
+## Decomposition output
+
+### Folder and file layout
+
+```text
+<workspace-root>/
+  <STORY-ID>/
+    requirements.md
+```
+
+- `<STORY-ID>` is the Jira/Xray story key when available (for example `PROJ-123`), otherwise an internal `AGENT-S###` identifier assigned per story, starting at `AGENT-S000`.
+- In batch mode, each source gets its own `<STORY-ID>` folder.
+- When a real Jira/Xray story key later becomes known for an internal `AGENT-S###` folder, rename the folder and update the metadata header to the real key.
+
+### `requirements.md` contents
+
+The file must contain, in order:
+
+1. **Story metadata header**
+   - source type (Jira / document)
+   - Jira key or document path/URL
+   - title
+   - link (if any)
+   - retrieval date
+   - depth mode used
+2. **Atomic testable requirements**
+   - one requirement per line item
+   - each carries a stable `REQ-###` ID, story-scoped, starting at `REQ-000`
+   - each is independently testable and unambiguous
+3. **Acceptance criteria**
+   - mapped explicitly to the `REQ-###` IDs they validate
+4. **Business rules** *(Full mode only)*
+5. **Candidate test conditions** *(Full mode only)*
+   - grouped as positive, negative, and edge
+   - each references the `REQ-###` IDs it exercises
+6. **Non-functional requirements** *(Full mode only)*
+7. **Gaps and open questions**
+   - explicit list of anything ambiguous, missing, or contradictory in the source
+   - raised back to the user; never silently resolved
+
+## ID rules (traceability backbone)
+
+- Requirements use internal `REQ-###` IDs, story-scoped, stable, starting at `REQ-000`.
+- Story folders use the Jira/Xray key when known, otherwise internal `AGENT-S###`.
+- These IDs are the traceability backbone consumed downstream: test cases reference `REQ-###` IDs.
+- When a story or item later exists in Jira/Xray, the internal ID is replaced with the real ID everywhere it appears — in file content and in filenames — for end-to-end consistency.
+
+## Hard constraints
+
+- Do not invent requirements, acceptance criteria, or business rules that are not grounded in the source.
+- Do not skip the confirm-completeness step after retrieving a Jira source.
+- Do not write test cases in this skill.
+- Do not assign expressive/prose filenames; identity comes from IDs.
+- Do not proceed past the plan step without user approval.
+- Do not resolve gaps silently — list them and ask.
+- Do not persist files when the user requested in-conversation-only mode.
+
+## Completion condition
+
+This skill is complete when:
+- the decomposition exists (persisted under `<workspace-root>/<STORY-ID>/requirements.md`, or delivered inline on request),
+- every requirement has a stable `REQ-###` ID,
+- acceptance criteria are mapped to requirement IDs,
+- gaps and open questions are explicitly listed,
+- and the user has been pointed to `qa-create-test-cases` as the next stage.
