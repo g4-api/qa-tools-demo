@@ -9,7 +9,7 @@ description: Generate, update, or refactor Manual Xray test cases from a require
 
 This skill authors Manual Xray test cases from a `requirements.md` decomposition. It is the "create" stage of the create / review / orchestrate trio.
 
-Each test case is a first-class code file: atomic, ID-named, individually reviewable, and shaped so it can be pushed into Xray with minimal transformation.
+Each test case is a first-class code file: atomic, ID-named, individually reviewable, and shaped so `qa-xray-sync` can construct an exact `new_xray_test` or `update_xray_test` payload without guessing.
 
 This skill must:
 1. resolve the requirements source and working mode,
@@ -78,14 +78,17 @@ Ask only the ones the prompt left open:
 
 Each test file is Markdown with a YAML frontmatter block.
 
-```markdown
+````markdown
 ---
 id: AGENT-000            # internal; replaced by xrayKey after sync
 xrayKey: null            # filled by qa-xray-sync
 type: Manual
 summary: <required>
 priority: <configurable>
-labels: []               # configurable
+categories: []           # configurable; maps to Xray categories
+severity: <configurable>
+tolerance: <number or omit>
+customFields: []         # configurable [{name: <string>, value: <string>}]
 folder: <repo/path>      # configurable (Xray Test Repository path)
 testSets: []             # configurable
 coveredRequirements: [REQ-000]   # traceability -> requirements.md
@@ -93,29 +96,59 @@ storyKey: PROJ-123
 status: draft
 ---
 
-## Preconditions
-<preconditions text>
+## Test Specifications
+<detailed test purpose, scope, and acceptance behavior>
+
+## Test Setup
+```yaml
+- action: <setup action>
+  expectedResults:
+    - <observable setup result>
+```
 
 ## Steps
-| # | Action | Data | Expected Result |
-|---|--------|------|-----------------|
-| 1 | ...    | ...  | ...             |
+```yaml
+- action: <single test action>
+  data: <optional input data; folded into action during Xray sync>
+  expectedResults:
+    - <observable result>
 ```
+
+## Test Teardown
+```yaml
+- action: <teardown action>
+  expectedResults:
+    - <observable teardown result>
+```
+````
+
+Omit an optional setup or teardown section when it has no items. `expectedResults` is always an array of one or more strings, never a scalar. `data` is local authoring metadata and is folded into `action` during sync because the mutation schemas have no `data` property.
 
 ### Mandatory fields (never optional)
 
 - `summary`
 - `type: Manual`
-- at least one step with a non-empty Action and Expected Result
+- at least one step with a non-empty `action` and a non-empty `expectedResults` array
 
 Everything else is template-configurable. When the prompt does not specify a field template, default to the full set and let the user confirm or trim.
 
 ### Step-authoring rules
 
-- steps are ordered and atomic; one clear action per step
-- Action states what the tester does; Data holds inputs; Expected Result is verifiable
+- steps are ordered and atomic; one clear `action` per step
+- `action` states what the tester does; optional `data` holds inputs; every `expectedResults` item is verifiable
 - avoid compound steps that hide multiple assertions
 - negative and edge cases must make the failure/boundary condition explicit
+- custom-field `name` and `value` entries are strings; names are unique within a test
+- `tolerance` is a number, never a numeric string
+
+## Xray mutation compatibility
+
+- `qa-xray-sync` maps `summary` to `scenario`.
+- It maps the Test Specifications, Test Setup, Steps, and Test Teardown sections to their identically purposed Xray fields.
+- It maps `categories`, `priority`, `severity`, `tolerance`, and `customFields` only when present.
+- It obtains `project` from the explicit approved sync destination; do not derive it silently from `storyKey`.
+- Local-only fields (`id`, `xrayKey` on create, `type`, `folder`, `testSets`, `coveredRequirements`, `storyKey`, `status`, and `data`) are never forwarded as top-level mutation properties.
+- Preserve the authored expected-results arrays exactly so sync never has to split prose heuristically.
 
 ## Coverage and traceability
 

@@ -58,7 +58,8 @@ Ask only the ones the prompt left open:
 4. **Iteration cap** — default 6, per test.
 5. **Final-report detail** — default: per-test scores plus REQ-to-test coverage summary. The user may choose a full per-dimension matrix plus run stats, or a summary table only.
 6. **Xray sync** — whether to sync each finalized test to Xray. Enable only if the user asks and the Xray MCP is available; otherwise skip sync and keep internal `AGENT-###` ids.
-7. **Git/PR target** — the GitHub repository and base branch used by `qa-git-commit` and `qa-github-pr`.
+7. **Xray Test Plan** — whether to create a Test Plan after test sync; if enabled, resolve its project, summary, and requested optional fields up front.
+8. **Git/PR target** — the GitHub repository and base branch used by `qa-git-commit` and `qa-github-pr`.
 
 ## Coverage planning
 
@@ -70,14 +71,15 @@ Run this loop after approval. For each planned test, in order:
 
 1. **Create** — invoke `qa-create-test-cases` to write (or update) the single test.
 2. **Review-fix** — invoke `qa-review-test-cases` to score it; if at or below 95, route its issues back to `qa-create-test-cases` and re-review. Repeat until the test exceeds 95 or the per-test iteration cap is reached.
-3. **Xray sync** *(if enabled and available)* — invoke `qa-xray-sync` for this single test, then let it update the IDs (filename, frontmatter, traceability).
+3. **Xray sync** *(if enabled and available)* — invoke `qa-xray-sync` for this single test. A new test must call `new_xray_test`; an existing changed test must call `update_xray_test`. The sync skill validates the exact closed-schema payload, executes the call, and then updates the IDs.
 4. **Commit** — invoke `qa-git-commit` to commit the finalized test to `qa/<STORY-ID>-tests`. The commit carries the real Xray key when sync ran, otherwise the `AGENT-###` id.
 5. **Next** — move to the next planned test.
 
 After all tests are finalized and committed:
 
-6. **Batch meta commit** — invoke `qa-git-commit` for `requirements.md` and `traceability.md`.
-7. **Pull request** — invoke `qa-github-pr` to open one detailed, ready-for-review PR.
+6. **Test Plan** *(if enabled)* — invoke `qa-xray-sync` to create it through `new_xray_test_plan` with its exact validated payload.
+7. **Batch meta commit** — invoke `qa-git-commit` for `requirements.md` and `traceability.md`.
+8. **Pull request** — invoke `qa-github-pr` to open one detailed, ready-for-review PR.
 
 Track per-test iteration counts and per-step changes for the final report.
 
@@ -145,6 +147,7 @@ If the run stopped early, replace the header with a clear failure header, list t
 - Do not stop before every test exceeds 95 unless the cap, a real blocker, or a sync/commit failure is hit.
 - Do not continue silently past the iteration cap or past a sync/commit failure.
 - Do not sync to Xray when the user did not enable it or the MCP is unavailable.
+- Do not create or update an Xray test or create a Test Plan outside `qa-xray-sync`; that skill owns exact tool routing and schema validation.
 - Do not edit test files directly; route fixes through `qa-create-test-cases`.
 - Do not score tests directly; scoring belongs to `qa-review-test-cases`.
 - Do not commit or open PRs directly; use `qa-git-commit` and `qa-github-pr`.

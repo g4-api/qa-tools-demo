@@ -78,9 +78,9 @@ If the user asks to change a weight, guide them, apply the new weights for this 
 - **Step atomicity & clarity** — one clear action per step; unambiguous wording.
 - **Expected-result verifiability** — every step's expected result is observable and checkable.
 - **Negative/edge coverage** — invalid, boundary, and error conditions are exercised where relevant.
-- **Xray-structure compliance** — frontmatter and step shape match the Manual Xray structure; mandatory fields present.
+- **Xray-structure compliance** — frontmatter and structured setup/step/teardown shapes can map to the exact Xray mutation schemas; every step has `action` and a non-empty `expectedResults` array; mandatory fields are present.
 - **Field completeness** — configured template fields are populated and valid.
-- **Data adequacy** — the Data column provides sufficient, realistic inputs.
+- **Data adequacy** — optional local `data`, or the `action` itself, provides sufficient realistic inputs without introducing an unsupported top-level Xray property.
 - **Consistency / no duplication** — no contradictory or duplicated tests; consistent terminology and IDs.
 
 ## Gate

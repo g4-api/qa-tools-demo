@@ -1,137 +1,186 @@
 ---
 name: qa-xray-sync
-description: Create or update Manual tests in Xray from local test-case files via an Xray/Atlassian MCP, link them to their Jira story or requirement, resolve conflicts by diff, and reconcile the internal AGENT-### id to the real Xray key in the filename, frontmatter, and traceability index. Use when locally authored test cases must be pushed into Xray or kept in sync with it.
+description: Create or update Manual tests and create Test Plans in Xray Cloud through the exact new_xray_test, update_xray_test, and new_xray_test_plan MCP tools; validate every closed-schema payload, link tests to requirements, and reconcile internal AGENT-### ids to real Xray keys. Use when local test cases must be pushed to Xray, existing Xray tests must be updated, or a new Xray Test Plan must be created.
 ---
 
 # QA Xray Sync
 
 ## Purpose
 
-This skill pushes locally authored Manual test files into Xray and closes the ID lifecycle by replacing internal `AGENT-###` identifiers with real Xray keys.
+Push locally authored Manual test files into Xray Cloud, create Test Plans, and close the test ID lifecycle by replacing internal `AGENT-###` identifiers with real Xray keys.
 
-It is MCP-agnostic: it resolves the actual Xray/Atlassian MCP tools at runtime rather than assuming a fixed API.
+Use the three exact Xray mutation tools. Never substitute generic Jira issue tools. Read [references/xray-tool-contracts.md](references/xray-tool-contracts.md) completely before planning or executing a mutation.
 
 This skill must:
-1. resolve the sync target and confirm the Xray destination,
-2. detect MCP capabilities at runtime,
-3. classify each local test as create, update, conflict, or skip,
-4. show a sync plan and wait for approval,
-5. execute create/update and requirement-coverage linking,
-6. resolve conflicts by diff with the user,
-7. reconcile IDs and report the results.
 
-## Use this skill when
+1. resolve the sync target and explicit Xray destination,
+2. inspect the exact required Xray tool contract,
+3. classify each local test as CREATE, UPDATE, CONFLICT, or SKIP,
+4. construct and validate a closed-schema payload,
+5. show the exact tool and payload in a sync plan and wait for approval,
+6. execute the exact create, update, or Test Plan tool,
+7. resolve conflicts with the user,
+8. reconcile IDs only after a valid successful response, and
+9. report the results.
 
-Use this skill when the task is about:
-- creating new Xray tests from local test files
-- updating existing Xray tests from local changes
-- linking tests to a Jira story or requirement for coverage
-- reconciling internal IDs with real Xray keys
-- syncing a single finalized test mid-loop for `qa-orchestrate-test-cases`
+## Supported operations
+
+- Create a new Xray test from a local test file.
+- Update an existing Xray test from local changes.
+- Create a new Xray Test Plan from approved plan inputs.
+- Link tests to a Jira story or requirement for coverage.
+- Reconcile internal IDs with real Xray keys.
+- Sync one finalized test inside `qa-orchestrate-test-cases`.
+
+Do not use this skill to author, score, or loop test cases. Those belong to the create, review, and orchestrate skills.
 
 ## Batch and single-test modes
 
-This skill runs in two modes:
+- **Batch**: sync a whole `<STORY-ID>/tests/` set. Standalone use presents the complete sync plan and waits for approval.
+- **Single test**: sync exactly one finalized test. The orchestrator's upfront approval authorizes the payload only when it is derived exclusively from the approved test artifact and destination.
+- **Test Plan**: create exactly one plan from explicitly approved inputs.
 
-- **Batch** — sync a whole `<STORY-ID>/tests/` set. Standalone use presents the full sync plan and waits for approval.
-- **Single test** — sync exactly one finalized test. Used by `qa-orchestrate-test-cases` between the review-fix step and the Git commit, so the commit can carry the real Xray key. In this mode the orchestrator's single upfront approval authorizes the sync; classify and sync just that one test, then update its IDs.
-
-In both modes, conflicts are always surfaced to the user and never overwritten silently.
-
-Do not use this skill to author, score, or loop test cases. Those belong to the create / review / orchestrate skills.
-
-## Operating philosophy
-
-Test artifacts are first-class code files, and Xray is the system of record for their execution. Local files are the authoring source of truth; syncing is a deliberate, reviewed, outward-facing write, never an automatic side effect.
+In every mode, surface conflicts and missing values. Never overwrite silently or invent a payload value.
 
 ## Interaction contract
 
-1. **Load** — triggered by the user prompt, or offered by `qa-orchestrate-test-cases` on success.
-2. **Ask guiding questions** — resolve only what the prompt did not set.
-3. **Show a sync plan** — the per-test action classification.
-4. **Wait for approval** — mandatory, because this writes to an external system.
-5. **Execute** — push, link, resolve conflicts, reconcile IDs.
+1. Load the skill from the user request or orchestrator handoff.
+2. Resolve only inputs the request did not set.
+3. Inspect the exact mutation contract.
+4. In standalone mode, show the classification, exact tool name, and exact candidate payload.
+5. In standalone mode, wait for approval because the operation writes to an external system.
+6. Validate again immediately before execution.
+7. Call the exact tool, validate its response, and reconcile local state.
 
-Conflicts are always surfaced to the user. Nothing is overwritten silently.
+The orchestrator's single upfront approval replaces the standalone approval only for pre-approved single-test and Test Plan operations. Stop if execution would require a new unapproved value.
 
-## Guiding questions to resolve at load
+## Inputs to resolve
 
-Ask only the ones the prompt left open:
+For test sync, resolve:
 
-1. **Sync target** — which `<STORY-ID>`/`tests/` set (or which specific tests) to sync.
-2. **Xray destination** — project and Test Repository folder/path.
-3. **MCP reachability** — confirm the Xray/Atlassian MCP is available; if not, stop and report.
+1. the `<STORY-ID>/tests/` set or specific test,
+2. the explicit Jira project key and optional Test Repository destination, and
+3. Xray MCP reachability.
 
-## MCP capability resolution
+For Test Plan creation, resolve:
 
-- Resolve the available Xray/Atlassian MCP tools at runtime; do not hardcode tool names.
-- Detect whether the target behaves like Xray Cloud (for example preconditions as linked entities, Test Repository folder paths) or Xray Server/Data Center.
-- If the platform behavior cannot be inferred from the available tools, ask the user.
+1. required `project` and `summary`, and
+2. only requested optional `description`, `jql`, `context`, and `customFields`.
+
+Do not derive `project` silently from `storyKey`. Ask when the approved destination does not provide it.
+
+## Exact tool routing
+
+Use this routing without exceptions:
+
+| Operation | Exact mutation tool |
+|---|---|
+| CREATE test | `new_xray_test` |
+| UPDATE test | `update_xray_test` |
+| CREATE Test Plan | `new_xray_test_plan` |
+
+- Never use a generic Jira create/update issue tool for these operations.
+- Never replace one required tool with another Xray tool.
+- Stop and report the exact missing tool when it is unavailable.
+- Treat these contracts as Xray Cloud contracts. Do not silently adapt them to Xray Server or Data Center.
+
+## Contract inspection
+
+Before constructing a mutation payload:
+
+1. Read `references/xray-tool-contracts.md`.
+2. If `get_xray_tool_metadata` is available, call it with the selected exact mutation tool name.
+3. Verify that the returned `name` matches exactly and that its input schema agrees with the bundled contract.
+4. Stop without mutating Xray if the live schema and bundled contract differ.
 
 ## Sync classification
 
-For each local test file, classify the action:
+For each local test file:
 
-- **CREATE** — no `xrayKey` in frontmatter. The test does not yet exist in Xray.
-- **UPDATE** — has an `xrayKey`, and the local file differs from the Xray test, with no server-side divergence since last sync.
-- **CONFLICT** — has an `xrayKey`, and the Xray test changed on the server since last sync.
-- **SKIP** — has an `xrayKey`, and local and server are equal.
+- **CREATE**: no `xrayKey`; call `new_xray_test`.
+- **UPDATE**: has an `xrayKey`, differs from the Xray test, and has no server-side divergence; call `update_xray_test`.
+- **CONFLICT**: has an `xrayKey` and the Xray test changed independently; show a diff and ask how to resolve it.
+- **SKIP**: local and server values are equal, or an update would contain `key` alone; do not call a mutation tool.
 
-Present this classification as the sync plan and wait for approval before executing.
+## Payload construction and validation
+
+- Construct a fresh payload from the selected tool's allowlist. Never pass parsed frontmatter or a local artifact object directly.
+- Follow `references/xray-tool-contracts.md` to the letter, including different `customFields` shapes for create and update.
+- Enforce `additionalProperties: false` at the top level and in every closed nested object.
+- Preserve `expectedResults` as an array containing at least one string. Never send a scalar expected result.
+- Omit absent optional properties. Do not send `null`, manufacture defaults, or infer content.
+- For create calls, send `customFields` as an array of objects containing only string `name` and string `value`.
+- For update calls, send `customFields` as a string-valued object. Reject duplicate source names instead of overwriting silently.
+- Incorporate optional local `data` into the corresponding human-readable `action`; no mutation schema accepts `data`.
+- Validate all required properties, types, nested required properties, minimum array lengths, and property allowlists immediately before the tool call.
+- In standalone mode, show the exact validated payload in the approval plan. In orchestrated mode, record the exact validated payload immediately before the call; do not request another approval when every value is derived from approved inputs. Redact a value only when it is actually secret.
 
 ## Execution
 
-### Create
+### Create a test
 
-1. Map the local frontmatter and steps to the Xray Manual test structure.
-2. Push the create through the MCP.
-3. Capture the returned Xray key.
-4. Rename `AGENT-###.md` to `<XRAYKEY>.md`.
-5. Set `xrayKey` and `id` in the frontmatter to the Xray key.
-6. Record the `AGENT-### -> <XRAYKEY>` mapping in `traceability.md`.
+1. Map the approved artifact into a fresh `new_xray_test` payload.
+2. Require string `project` and string `scenario`.
+3. Validate and call `new_xray_test`.
+4. Require non-empty string `id`, `key`, and `link` in the response.
+5. Rename `AGENT-###.md` to `<XRAYKEY>.md`.
+6. Set `xrayKey` and `id` in frontmatter to the returned key.
+7. Record `AGENT-### -> <XRAYKEY>` in `traceability.md`.
 
-### Update
+Do not reconcile any local identifier when the call or response validation fails.
 
-- Treat the local file as the source of truth for non-conflicting fields.
-- Push the changed fields and steps through the MCP.
+### Update a test
 
-### Conflict
+1. Treat the local file as the source of truth for non-conflicting supported fields.
+2. Build a fresh `update_xray_test` payload with `key` plus only changed supported fields.
+3. Classify a payload containing `key` alone as SKIP.
+4. Validate and call `update_xray_test`.
+5. Require non-empty string `id`, `key`, and `link` in the response.
 
-- Show a diff between the local file and the Xray test.
-- Ask the user how to resolve per test (keep local, keep server, or merge).
-- Never overwrite a conflicting test without explicit user direction.
+### Create a Test Plan
 
-### Link to story
+1. Build a fresh `new_xray_test_plan` payload from the approved inputs.
+2. Require string `project` and string `summary`.
+3. Include only requested optional `description`, `jql`, `context`, and create-shaped `customFields`.
+4. Validate and call `new_xray_test_plan`.
+5. Require non-empty string `id`, `key`, and `link` in the response.
+6. Report the returned values.
 
-- Create requirement-coverage links between each test and its Jira story or requirement, based on `coveredRequirements` and `storyKey`.
-- This is push plus link only. Do not pull server-side changes back into local files.
+### Resolve a conflict
 
-## ID lifecycle closure
+- Show a field-level diff between the local file and Xray test.
+- Ask the user to keep local, keep server, or merge for that test.
+- Never overwrite a conflict without explicit direction.
 
-- After a successful create, the internal `AGENT-###` identity is retired.
-- The real Xray key becomes the identity in the filename, the `id` and `xrayKey` frontmatter, and `traceability.md`.
-- Keep `coveredRequirements` intact so requirement traceability survives the swap.
+### Link coverage
+
+- After a successful mutation, create requested requirement-coverage links based on `coveredRequirements` and `storyKey` with the appropriate available link tool.
+- Keep link calls separate from the three mutation payloads because their closed schemas do not accept link fields.
+- Do not pull server-side changes into local files.
 
 ## Report
 
-After execution, report:
+Report:
 
-- created tests with their new Xray keys and old `AGENT-###` ids
-- updated tests
-- linked coverage
-- skipped tests
-- unresolved conflicts, if any
+- created tests with new Xray keys, links, and old `AGENT-###` ids,
+- updated tests and links,
+- created Test Plans and links,
+- linked coverage,
+- skipped tests, and
+- unresolved conflicts or failures.
 
 ## Hard constraints
 
-- Do not push without approval.
+- Do not push without the applicable approval.
+- Do not use any mutation tool except the exact tool mandated by the routing table.
+- Do not call a mutation until its payload passes the bundled closed-schema contract.
 - Do not overwrite a conflicting test without explicit user direction.
-- Do not pull server changes back into local files.
-- Do not hardcode MCP tool names; resolve them at runtime.
+- Do not pull server changes into local files.
 - Do not author, score, or loop test cases here.
-- Do not leave a created test with a stale `AGENT-###` filename or frontmatter.
-- Do not break `coveredRequirements` traceability during the ID swap.
+- Do not reconcile an ID from an invalid or failed response.
+- Do not leave a successfully created test with a stale `AGENT-###` filename or frontmatter.
+- Do not break `coveredRequirements` traceability during an ID swap.
 
 ## Completion condition
 
-This skill is complete when every in-scope test has been created, updated, skipped, or explicitly left as an unresolved conflict; all created tests carry their real Xray key in filename, frontmatter, and `traceability.md`; and the sync report has been delivered.
+Complete when every in-scope operation is created, updated, skipped, or explicitly unresolved; every successful response passed output validation; created tests carry real Xray keys in filename, frontmatter, and traceability; and the sync report is delivered.
