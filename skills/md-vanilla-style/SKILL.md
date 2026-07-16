@@ -9,12 +9,14 @@ description: Author or revise clear, structurally valid Markdown files with stri
 
 Create readable Markdown that is structurally correct, consistently enumerated, and easy to review as source text.
 
-Apply this skill whenever a `.md` file is created or changed. When another skill defines an artifact template, follow that template and apply these rules to its Markdown representation.
+Apply this skill whenever a `.md` file is created or changed.
+When another skill defines an artifact template, follow that template and apply these rules to its Markdown representation.
 
 ## Document structure
 
 - Use exactly one level-one heading in a document without YAML frontmatter.
-- When YAML frontmatter supplies the document identity, begin the body at level two unless the owning artifact contract requires a level-one heading.
+- When YAML frontmatter supplies the document identity, begin the body at level two
+    unless the owning artifact contract requires a level-one heading.
 - Increase heading depth by one level at a time. Never jump from `##` to `####`.
 - Keep one blank line before and after headings, lists, tables, block quotes, and fenced blocks.
 - End every file with exactly one newline.
@@ -34,7 +36,8 @@ Apply this skill whenever a `.md` file is created or changed. When another skill
 Enumerate every ordered, actionable, or traceable record explicitly.
 
 - Number procedure steps from `1` without gaps or duplicate numbers.
-- Number setup actions, main test steps, expected results, teardown actions, acceptance criteria, business rules, candidate test conditions, gaps, and open questions.
+- Number setup actions, main test steps, expected results, teardown actions, acceptance criteria,
+    business rules, candidate test conditions, gaps, and open questions.
 - Preserve stable domain IDs such as `REQ-001` or `AGENT-001`; the visible ordinal and stable ID serve different purposes.
 - Restart numbering at `1` under each new section or parent item.
 - Use nested ordered lists for child results or substeps. Indent nested items by four spaces.
@@ -86,7 +89,8 @@ Example:
 When authoring QA artifacts:
 
 - Keep requirement and test metadata in YAML frontmatter only when the owning skill requires metadata.
-- Render specifications, setup, test steps, test data, expected results, teardown, coverage, and review findings as readable Markdown.
+- Render specifications, setup, test steps, test data, expected results, teardown, coverage,
+    and review findings as readable Markdown.
 - Enumerate each requirement and criterion while retaining its stable ID.
 - Enumerate every setup action, test step, expected result, and teardown action.
 - Keep expected results observable and place them as a nested ordered list beneath the action they evaluate.

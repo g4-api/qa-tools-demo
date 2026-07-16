@@ -9,7 +9,8 @@ description: Review, score, and automatically repair Markdown files against md-v
 
 Review and repair Markdown through a deterministic cycle until the artifact is flawless.
 
-Read the complete `md-vanilla-style/SKILL.md` before reviewing. When an owning skill defines an artifact-specific template, validate both contracts.
+Read the complete `md-vanilla-style/SKILL.md` before reviewing.
+When an owning skill defines an artifact-specific template, validate both contracts.
 
 ## Inputs
 
@@ -43,7 +44,8 @@ Do not lower the gate, average multiple files, or declare a file flawless while 
 | Links and references | 5 |
 | Completeness and internal consistency | 10 |
 
-Score each dimension from 0 to 100 and calculate the weighted total. Any concrete rule violation makes the total less than 100.
+Score each dimension from 0 to 100 and calculate the weighted total.
+Any concrete rule violation makes the total less than 100.
 
 ## Flawless gate
 

@@ -8,18 +8,61 @@ import sys
 from pathlib import Path
 
 
-FENCE_PATTERN = re.compile(r"^(`{3,}|~{3,})([^`]*)$")
+MAX_LINE_LENGTH = 125
 HEADING_PATTERN = re.compile(r"^(#{1,6})\s+\S")
 ORDERED_PATTERN = re.compile(r"^(\s*)(\d+)\.\s+\S")
-TABLE_DELIMITER_PATTERN = re.compile(
-    r"^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?\s*$"
-)
 
 
 def add_error(errors: list[str], line_number: int, message: str) -> None:
     """Append one line-addressable error."""
 
     errors.append(f"line {line_number}: {message}")
+
+
+def parse_fence(line: str) -> tuple[str, str] | None:
+    """Return a fence marker and info string using a linear scan."""
+
+    if not line or line[0] not in {"`", "~"}:
+        return None
+
+    marker_character = line[0]
+    marker_length = 1
+    while marker_length < len(line) and line[marker_length] == marker_character:
+        marker_length += 1
+
+    if marker_length < 3:
+        return None
+
+    info = line[marker_length:]
+    if marker_character == "`" and "`" in info:
+        return None
+
+    return line[:marker_length], info
+
+
+def is_table_delimiter(line: str) -> bool:
+    """Return whether a line is a table delimiter using linear cell checks."""
+
+    stripped = line.strip()
+    if stripped.startswith("|"):
+        stripped = stripped[1:]
+    if stripped.endswith("|"):
+        stripped = stripped[:-1]
+
+    cells = stripped.split("|")
+    if len(cells) < 2:
+        return False
+
+    for cell in cells:
+        value = cell.strip()
+        if value.startswith(":"):
+            value = value[1:]
+        if value.endswith(":"):
+            value = value[:-1]
+        if len(value) < 3 or any(character != "-" for character in value):
+            return False
+
+    return True
 
 
 def lint_frontmatter(lines: list[str], errors: list[str]) -> int:
@@ -48,12 +91,12 @@ def lint_fences(lines: list[str], body_start: int, errors: list[str]) -> set[int
 
     for index in range(body_start, len(lines)):
         line = lines[index]
-        match = FENCE_PATTERN.match(line)
+        fence = parse_fence(line)
         if opening is None:
-            if not match:
+            if fence is None:
                 continue
-            marker = match.group(1)
-            language = match.group(2).strip()
+            marker, info = fence
+            language = info.strip()
             if not language:
                 add_error(errors, index + 1, "opening code fence has no language")
             if language.lower() in {"yaml", "yml"}:
@@ -151,12 +194,31 @@ def lint_tables(
                     index + 1,
                     'table pipe is missing adjacent space for style "compact" (MD060)',
                 )
-        if not TABLE_DELIMITER_PATTERN.match(lines[index]):
+        if not is_table_delimiter(lines[index]):
             continue
         header_columns = lines[index - 1].count("|")
         delimiter_columns = lines[index].count("|")
         if header_columns != delimiter_columns:
             add_error(errors, index + 1, "table delimiter column count differs from header")
+
+
+def lint_line_length(
+    lines: list[str], body_start: int, fenced_lines: set[int], errors: list[str]
+) -> None:
+    """Validate prose line length while exempting tables, links, and code."""
+
+    for index in range(body_start, len(lines)):
+        line = lines[index]
+        if index in fenced_lines or len(line) <= MAX_LINE_LENGTH:
+            continue
+        stripped = line.strip()
+        if stripped.startswith("|") or "http://" in line or "https://" in line:
+            continue
+        add_error(
+            errors,
+            index + 1,
+            f"line exceeds the {MAX_LINE_LENGTH}-character limit",
+        )
 
 
 def lint_file(path: Path) -> list[str]:
@@ -185,6 +247,7 @@ def lint_file(path: Path) -> list[str]:
     lint_headings(lines, body_start, fenced_lines, errors)
     lint_enumeration(lines, body_start, fenced_lines, errors)
     lint_tables(lines, body_start, fenced_lines, errors)
+    lint_line_length(lines, body_start, fenced_lines, errors)
     return errors
 
 
