@@ -104,14 +104,17 @@ For each local test file:
 
 ## Payload construction and validation
 
-- Construct a fresh payload from the selected tool's allowlist. Never pass parsed frontmatter or a local artifact object directly.
+- Read YAML only from the metadata frontmatter. Parse Test Specifications, Test Setup, Steps, and Test Teardown from the readable Markdown body.
+- In each action section, treat the top-level ordered item labeled Action as one Xray action and its nested ordered Expected results as that action's `expectedResults` array.
+- Require action and expected-result numbering to start at `1`, remain gapless, and restart in each section. Stop on ambiguous nesting or missing labels.
+- Construct a fresh payload from the selected tool's allowlist. Never pass parsed frontmatter, Markdown syntax, or a local artifact object directly.
 - Follow `references/xray-tool-contracts.md` to the letter, including different `customFields` shapes for create and update.
 - Enforce `additionalProperties: false` at the top level and in every closed nested object.
-- Preserve `expectedResults` as an array containing at least one string. Never send a scalar expected result.
+- Convert each explicitly numbered Expected results list to an array containing at least one string. Never split prose heuristically or send a scalar expected result.
 - Omit absent optional properties. Do not send `null`, manufacture defaults, or infer content.
 - For create calls, send `customFields` as an array of objects containing only string `name` and string `value`.
 - For update calls, send `customFields` as a string-valued object. Reject duplicate source names instead of overwriting silently.
-- Incorporate optional local `data` into the corresponding human-readable `action`; no mutation schema accepts `data`.
+- Incorporate readable Test data into the corresponding `action`; no mutation schema accepts a separate data property.
 - Validate all required properties, types, nested required properties, minimum array lengths, and property allowlists immediately before the tool call.
 - In standalone mode, show the exact validated payload in the approval plan. In orchestrated mode, record the exact validated payload immediately before the call; do not request another approval when every value is derived from approved inputs. Redact a value only when it is actually secret.
 
@@ -119,7 +122,7 @@ For each local test file:
 
 ### Create a test
 
-1. Map the approved artifact into a fresh `new_xray_test` payload.
+1. Parse the approved metadata-only YAML frontmatter and readable enumerated Markdown body into a fresh `new_xray_test` payload.
 2. Require string `project` and string `scenario`.
 3. Validate and call `new_xray_test`.
 4. Require non-empty string `id`, `key`, and `link` in the response.
@@ -174,6 +177,8 @@ Report:
 - Do not push without the applicable approval.
 - Do not use any mutation tool except the exact tool mandated by the routing table.
 - Do not call a mutation until its payload passes the bundled closed-schema contract.
+- Do not accept YAML or serialized step objects in a test body.
+- Do not sync a test that has not passed `md-code-compliance-review` with a score of 100 and zero linter errors.
 - Do not overwrite a conflicting test without explicit user direction.
 - Do not pull server changes into local files.
 - Do not author, score, or loop test cases here.

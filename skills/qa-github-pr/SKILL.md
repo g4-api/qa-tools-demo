@@ -42,6 +42,8 @@ Ask only the ones the prompt left open:
 
 - The story branch exists and carries the committed test files.
 - The batch meta commit (`requirements.md`, `traceability.md`) is in place.
+- Every committed Markdown artifact has a recorded 100 Markdown score and zero linter errors.
+- Every test has a complete per-test scoring table from its completed cycle.
 
 If commits are missing, stop and route back to `qa-git-commit`.
 
@@ -55,7 +57,7 @@ Assemble the PR body from the run artifacts:
 - **Summary** — what the cycle produced (number of tests, coverage depth, standard used).
 - **Tests** — a list, each with its Xray key, original `AGENT-###` id, and summary.
 - **Coverage matrix** — REQ-to-test mapping from `traceability.md`.
-- **Quality** — the final per-test score table from `qa-review-test-cases`, confirming every test exceeds 95.
+- **Quality** — one summary row per test with QA score, Markdown score, linter error count, iteration count, and PASS status, plus the complete per-test scoring tables produced during the cycles or direct links to their preserved run output.
 - **Xray links** — links to the synced tests, when sync ran.
 - **Run stats** — iteration count, and anything left as a noted gap.
 
@@ -81,6 +83,7 @@ QA: <STORY-ID> manual test cases
 - Do not commit, author, score, or sync here.
 - Do not open more than one PR per story cycle.
 - Do not omit the coverage matrix or the final score table from the body.
+- Do not open a PR while any Markdown artifact is below 100 or has a linter error.
 
 ## Completion condition
 

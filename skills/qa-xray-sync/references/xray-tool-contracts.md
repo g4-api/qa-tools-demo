@@ -136,13 +136,13 @@ Example:
 | `severity` | `severity` | `severity` when changed. |
 | `tolerance` | `tolerance` | `tolerance` when changed. |
 | Local custom-field list | `customFields` array | Convert to a string-valued object; reject duplicate names. |
-| `## Test Setup` | `testSetup` | `testSetup` when changed. |
-| `## Steps` | `steps` | `steps` when changed. |
-| `## Test Teardown` | `testTeardown` | `testTeardown` when changed. |
+| Numbered actions under `## Test Setup` | `testSetup` | `testSetup` when changed. |
+| Numbered actions under `## Steps` | `steps` | `steps` when changed. |
+| Numbered actions under `## Test Teardown` | `testTeardown` | `testTeardown` when changed. |
 | `xrayKey` | Not accepted; omit. | `key`. |
 | `id`, `type`, `folder`, `testSets`, `coveredRequirements`, `storyKey`, `status`, `data` | Not accepted; omit. | Not accepted; omit. |
 
-When a local step contains `data`, incorporate it into the human-readable `action`; no mutation schema accepts a separate `data` property. Do not split prose into multiple expected results. Preserve the explicitly authored `expectedResults` array.
+Read YAML only from metadata frontmatter. For each Markdown action, remove enumeration and presentation labels, incorporate its optional Test data into the human-readable `action`, and convert the nested numbered Expected results list into `expectedResults`. No mutation schema accepts a separate data property. Reject gaps, ambiguous nesting, missing labels, or unnumbered results; never split prose heuristically.
 
 ## Validation sequence
 

@@ -102,32 +102,27 @@ def lint_enumeration(
     """Validate ordered-list numbering independently at each indentation level."""
 
     expected_by_indent: dict[int, int] = {}
-    previous_was_ordered = False
-    previous_indent = 0
 
     for index in range(body_start, len(lines)):
         if index in fenced_lines:
             continue
         match = ORDERED_PATTERN.match(lines[index])
         if not match:
-            if not lines[index].strip():
-                previous_was_ordered = False
+            stripped = lines[index].strip()
+            if HEADING_PATTERN.match(lines[index]) or (
+                stripped and not lines[index].startswith((" ", "\t"))
+            ):
                 expected_by_indent.clear()
             continue
 
         indent = len(match.group(1).replace("\t", "    "))
         number = int(match.group(2))
-        if not previous_was_ordered or indent > previous_indent:
-            expected = 1
-        else:
-            expected = expected_by_indent.get(indent, 1)
+        expected = expected_by_indent.get(indent, 1)
         if number != expected:
             add_error(errors, index + 1, f"ordered item is {number}; expected {expected}")
         expected_by_indent[indent] = number + 1
         for stale_indent in [value for value in expected_by_indent if value > indent]:
             del expected_by_indent[stale_indent]
-        previous_was_ordered = True
-        previous_indent = indent
 
 
 def lint_tables(
