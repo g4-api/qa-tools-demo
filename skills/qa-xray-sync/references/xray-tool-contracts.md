@@ -1,25 +1,28 @@
 # Xray mutation tool contracts
 
-Read this file before constructing any Xray mutation call. These contracts are derived from the authoritative definitions in `Mcp.Xray.Domain/Definitions`.
+Read this file before constructing any Xray mutation call.
+These contracts come from the authoritative definitions in `Mcp.Xray.Domain/Definitions`.
 
 ## Mandatory routing
 
 | Operation | Exact tool | Required inputs |
-|---|---|---|
+| --- | --- | --- |
 | Create a test | `new_xray_test` | `project`, `scenario` |
 | Create a Test Plan | `new_xray_test_plan` | `project`, `summary` |
 | Update a test | `update_xray_test` | `key` |
 
 Do not substitute a generic Jira issue tool or a differently named Xray tool for these operations.
 
-All three input schemas are closed at the top level (`additionalProperties: false`). Never forward a local artifact object directly. Construct a new allowlisted payload for the selected tool.
+All three input schemas are closed at the top level (`additionalProperties: false`).
+Never forward a local artifact object directly.
+Construct a new allowlisted payload for the selected tool.
 
 ## `new_xray_test`
 
 Allowed top-level properties:
 
 | Property | Type | Rules |
-|---|---|---|
+| --- | --- | --- |
 | `project` | string | Required Jira project key. |
 | `scenario` | string | Required human-readable test title. |
 | `testSpecifications` | string | Optional detailed specification. |
@@ -36,8 +39,10 @@ Every structured step item must contain only:
 
 ```json
 {
-  "action": "string",
-  "expectedResults": ["one or more strings"]
+    "action": "string",
+    "expectedResults": [
+        "one or more strings"
+    ]
 }
 ```
 
@@ -47,18 +52,24 @@ Example:
 
 ```json
 {
-  "project": "PROJ",
-  "scenario": "Reject an invalid password",
-  "testSpecifications": "Verify that invalid credentials do not create a session.",
-  "categories": ["authentication", "negative"],
-  "priority": "High",
-  "severity": "Major",
-  "steps": [
-    {
-      "action": "Submit the login form with a valid username and an invalid password.",
-      "expectedResults": ["The request is rejected.", "No authenticated session is created."]
-    }
-  ]
+    "project": "PROJ",
+    "scenario": "Reject an invalid password",
+    "testSpecifications": "Verify that invalid credentials do not create a session.",
+    "categories": [
+        "authentication",
+        "negative"
+    ],
+    "priority": "High",
+    "severity": "Major",
+    "steps": [
+        {
+            "action": "Submit the login form with a valid username and an invalid password.",
+            "expectedResults": [
+                "The request is rejected.",
+                "No authenticated session is created."
+            ]
+        }
+    ]
 }
 ```
 
@@ -67,7 +78,7 @@ Example:
 Allowed top-level properties:
 
 | Property | Type | Rules |
-|---|---|---|
+| --- | --- | --- |
 | `project` | string | Required Jira project key. |
 | `summary` | string | Required human-readable Test Plan title. |
 | `description` | string | Optional. |
@@ -79,12 +90,20 @@ Example:
 
 ```json
 {
-  "project": "PROJ",
-  "summary": "Authentication regression",
-  "description": "Regression plan for authentication stories.",
-  "jql": "key in (PROJ-101, PROJ-102)",
-  "context": {"environment": "staging", "browser": "Chrome"},
-  "customFields": [{"name": "Test Level", "value": "System"}]
+    "project": "PROJ",
+    "summary": "Authentication regression",
+    "description": "Regression plan for authentication stories.",
+    "jql": "key in (PROJ-101, PROJ-102)",
+    "context": {
+        "environment": "staging",
+        "browser": "Chrome"
+    },
+    "customFields": [
+        {
+            "name": "Test Level",
+            "value": "System"
+        }
+    ]
 }
 ```
 
@@ -93,7 +112,7 @@ Example:
 Allowed top-level properties:
 
 | Property | Type | Rules |
-|---|---|---|
+| --- | --- | --- |
 | `key` | string | Required existing Xray test key. |
 | `scenario` | string | Optional replacement title. |
 | `testSpecifications` | string | Optional replacement specification. |
@@ -106,28 +125,34 @@ Allowed top-level properties:
 | `steps` | array | Optional replacement structured step array. |
 | `testTeardown` | array | Optional replacement structured step array. |
 
-The three structured arrays use the same item shape as `new_xray_test`. Send only fields intended to change. Do not call the tool with `key` alone; classify that case as `SKIP`.
+The three structured arrays use the same item shape as `new_xray_test`.
+Send only fields intended to change.
+Do not call the tool with `key` alone; classify that case as `SKIP`.
 
 Example:
 
 ```json
 {
-  "key": "PROJ-101",
-  "scenario": "Reject invalid credentials",
-  "customFields": {"Test Level": "System"},
-  "steps": [
-    {
-      "action": "Submit invalid credentials.",
-      "expectedResults": ["Authentication is rejected."]
-    }
-  ]
+    "key": "PROJ-101",
+    "scenario": "Reject invalid credentials",
+    "customFields": {
+        "Test Level": "System"
+    },
+    "steps": [
+        {
+            "action": "Submit invalid credentials.",
+            "expectedResults": [
+                "Authentication is rejected."
+            ]
+        }
+    ]
 }
 ```
 
 ## Local-to-tool mapping
 
 | Local test artifact | Create payload | Update payload |
-|---|---|---|
+| --- | --- | --- |
 | Explicit sync destination `project` | `project` | Not accepted; omit. |
 | `summary` | `scenario` | `scenario` when changed. |
 | `## Test Specifications` | `testSpecifications` | `testSpecifications` when changed. |
@@ -142,17 +167,29 @@ Example:
 | `xrayKey` | Not accepted; omit. | `key`. |
 | `id`, `type`, `folder`, `testSets`, `coveredRequirements`, `storyKey`, `status`, `data` | Not accepted; omit. | Not accepted; omit. |
 
-Read YAML only from metadata frontmatter. For each Markdown action, remove enumeration and presentation labels, incorporate its optional Test data into the human-readable `action`, and convert the nested numbered Expected results list into `expectedResults`. No mutation schema accepts a separate data property. Reject gaps, ambiguous nesting, missing labels, or unnumbered results; never split prose heuristically.
+Read YAML only from metadata frontmatter.
+For each Markdown action, remove enumeration and presentation labels.
+Incorporate optional Test data into the human-readable `action`.
+Convert the nested numbered Expected results list into `expectedResults`.
+No mutation schema accepts a separate data property.
+Reject gaps, ambiguous nesting, missing labels, or unnumbered results.
+Never split prose heuristically.
 
 ## Validation sequence
 
 Before every mutation:
 
 1. Select the exact tool from the mandatory routing table.
-2. If `get_xray_tool_metadata` is available, call it with the selected exact tool name and verify that its returned `name` and input schema agree with this contract. Stop on a mismatch.
+2. Inspect live metadata when `get_xray_tool_metadata` is available.
+    1. Call it with the selected exact tool name.
+    2. Verify that the returned `name` and input schema agree with this contract.
+    3. Stop on a mismatch.
 3. Construct a fresh payload using only the selected tool's allowlist.
 4. Verify required properties, primitive types, nested required properties, and `expectedResults` minimum length.
 5. Verify that no additional property remains at any closed-object level.
-6. In standalone mode, show the exact payload in the approval plan. In orchestrated mode, record it immediately before the pre-approved call. Redact secrets if applicable.
+6. Record the exact payload.
+    1. In standalone mode, show it in the approval plan.
+    2. In orchestrated mode, record it immediately before the pre-approved call.
+    3. Redact secrets when applicable.
 7. Invoke the exact mutation tool.
 8. Accept success only when the result contains non-empty string `id`, `key`, and `link`.

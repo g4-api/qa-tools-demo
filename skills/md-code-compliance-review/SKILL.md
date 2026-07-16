@@ -33,7 +33,7 @@ Do not lower the gate, average multiple files, or declare a file flawless while 
 ## Rubric
 
 | Dimension | Weight |
-|---|---:|
+| --- | ---: |
 | YAML boundary and artifact contract | 15 |
 | Heading hierarchy and document structure | 15 |
 | Spacing and source cleanliness | 10 |
@@ -61,7 +61,7 @@ Always report one table per file:
 
 ```markdown
 | Markdown dimension | Weight | Score | Findings |
-|---|---:|---:|---|
+| --- | ---: | ---: | --- |
 | YAML boundary and artifact contract | 15 | 100 | None |
 | Heading hierarchy and document structure | 15 | 100 | None |
 | Spacing and source cleanliness | 10 | 100 | None |
@@ -82,6 +82,8 @@ For a failing review, list exact line numbers in Findings and set the final stat
 - Do not leave YAML or serialized step objects in a QA artifact body.
 - Do not omit the per-file score table.
 - Do not suppress linter errors.
+- Do not pass MD060 table-pipe spacing violations.
+- Do not pass code whose nested indentation is not a multiple of four spaces.
 - Do not change domain meaning merely to satisfy formatting.
 
 ## Completion condition

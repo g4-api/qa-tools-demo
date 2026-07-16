@@ -67,6 +67,7 @@ Example:
 - Keep list-marker style consistent within a list.
 - Use tables only for compact comparisons or exact mappings.
 - Give every table a header row and delimiter row.
+- Use compact table pipes with one space on both sides of every cell value, including delimiter cells.
 - Keep every row at the same column count.
 - Align numeric columns to the right when useful.
 
@@ -76,6 +77,7 @@ Example:
 - Verify local relative links exist.
 - Use backticks for identifiers, field names, file names, and literal values.
 - Give every fenced code block a language identifier.
+- Indent nested code content by four spaces per nesting level.
 - Balance every opening fence with a matching closing fence.
 - Do not use a code fence for ordinary prose or artifact content.
 

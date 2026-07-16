@@ -44,7 +44,7 @@ def lint_fences(lines: list[str], body_start: int, errors: list[str]) -> set[int
     """Validate fences and return line indexes contained in fenced blocks."""
 
     fenced_lines: set[int] = set()
-    opening: tuple[str, int] | None = None
+    opening: tuple[str, int, str] | None = None
 
     for index in range(body_start, len(lines)):
         line = lines[index]
@@ -58,17 +58,26 @@ def lint_fences(lines: list[str], body_start: int, errors: list[str]) -> set[int
                 add_error(errors, index + 1, "opening code fence has no language")
             if language.lower() in {"yaml", "yml"}:
                 add_error(errors, index + 1, "YAML is permitted only in frontmatter")
-            opening = (marker, index)
+            opening = (marker, index, language.lower())
             fenced_lines.add(index)
             continue
 
         fenced_lines.add(index)
-        marker, opening_index = opening
+        marker, opening_index, language = opening
         if line == marker:
             opening = None
+            continue
+        if language == "json" and line.strip():
+            indentation = len(line) - len(line.lstrip(" "))
+            if indentation % 4:
+                add_error(
+                    errors,
+                    index + 1,
+                    "JSON code indentation is not a multiple of four spaces",
+                )
 
     if opening is not None:
-        _, opening_index = opening
+        _, opening_index, _ = opening
         add_error(errors, opening_index + 1, "code fence is not closed")
 
     return fenced_lines
@@ -133,6 +142,15 @@ def lint_tables(
     for index in range(body_start + 1, len(lines)):
         if index in fenced_lines or "|" not in lines[index]:
             continue
+        stripped = lines[index].strip()
+        if stripped.startswith("|") and stripped.endswith("|"):
+            cells = stripped.split("|")[1:-1]
+            if any(not cell.startswith(" ") or not cell.endswith(" ") for cell in cells):
+                add_error(
+                    errors,
+                    index + 1,
+                    'table pipe is missing adjacent space for style "compact" (MD060)',
+                )
         if not TABLE_DELIMITER_PATTERN.match(lines[index]):
             continue
         header_columns = lines[index - 1].count("|")
