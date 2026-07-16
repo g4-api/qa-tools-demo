@@ -19,6 +19,8 @@ This skill must:
 5. surface gaps and open questions instead of inventing answers,
 6. persist the decomposition as a first-class artifact (or output it inline on request).
 
+Before writing or changing any `.md` artifact, read and apply `md-vanilla-style`. After each write, invoke `md-code-compliance-review`, run its linter, repair every finding, and repeat until the file scores 100 with zero linter errors.
+
 This skill does not write test cases. It prepares the ground for them.
 
 ## Use this skill when
@@ -93,29 +95,60 @@ Ask only the ones the prompt left open:
 
 ### `requirements.md` contents
 
+Use YAML only for metadata frontmatter. Render every requirement, criterion, rule, condition, NFR, gap, and question as readable enumerated Markdown in the body.
+
 The file must contain, in order:
 
-1. **Story metadata header**
-   - source type (Jira / document)
-   - Jira key or document path/URL
-   - title
-   - link (if any)
-   - retrieval date
-   - depth mode used
+1. **YAML metadata frontmatter**
+    1. `sourceType` (`jira` or `document`)
+    2. `source` (Jira key or document path/URL)
+    3. `storyKey`
+    4. `title`
+    5. `link`, when available
+    6. `retrievedAt`
+    7. `depthMode`
 2. **Atomic testable requirements**
-   - one requirement per line item
-   - each carries a stable `REQ-###` ID, story-scoped, starting at `REQ-000`
-   - each is independently testable and unambiguous
+    1. Number every requirement from `1` without gaps.
+    2. Put exactly one requirement on each ordered-list item.
+    3. Include a stable `REQ-###` ID, story-scoped and starting at `REQ-000`.
+    4. Keep every requirement independently testable and unambiguous.
 3. **Acceptance criteria**
-   - mapped explicitly to the `REQ-###` IDs they validate
+    1. Number every criterion from `1` without gaps.
+    2. Map each criterion explicitly to the `REQ-###` IDs it validates.
 4. **Business rules** *(Full mode only)*
 5. **Candidate test conditions** *(Full mode only)*
-   - grouped as positive, negative, and edge
-   - each references the `REQ-###` IDs it exercises
+    1. Group conditions as positive, negative, and edge.
+    2. Number every condition within its group.
+    3. Reference the `REQ-###` IDs each condition exercises.
 6. **Non-functional requirements** *(Full mode only)*
 7. **Gaps and open questions**
-   - explicit list of anything ambiguous, missing, or contradictory in the source
-   - raised back to the user; never silently resolved
+    1. Number every ambiguity, omission, or contradiction.
+    2. Raise each item to the user; never resolve it silently.
+
+Example boundary:
+
+````markdown
+---
+sourceType: jira
+source: PROJ-123
+storyKey: PROJ-123
+title: Reject invalid credentials
+retrievedAt: 2026-07-17
+depthMode: full
+---
+
+## Atomic testable requirements
+
+1. **REQ-000:** The system rejects an invalid password.
+2. **REQ-001:** The system does not create an authenticated session after rejection.
+
+## Acceptance criteria
+
+1. **AC-001** (`REQ-000`): An invalid password produces the approved error response.
+2. **AC-002** (`REQ-001`): No authenticated session cookie is returned.
+````
+
+Do not place YAML, serialized objects, or machine payloads after the closing frontmatter marker.
 
 ## ID rules (traceability backbone)
 
@@ -127,6 +160,8 @@ The file must contain, in order:
 ## Hard constraints
 
 - Do not invent requirements, acceptance criteria, or business rules that are not grounded in the source.
+- Do not write body content as YAML; YAML is metadata frontmatter only.
+- Do not complete while `md-code-compliance-review` reports a score below 100 or any linter error.
 - Do not skip the confirm-completeness step after retrieving a Jira source.
 - Do not write test cases in this skill.
 - Do not assign expressive/prose filenames; identity comes from IDs.
@@ -141,4 +176,6 @@ This skill is complete when:
 - every requirement has a stable `REQ-###` ID,
 - acceptance criteria are mapped to requirement IDs,
 - gaps and open questions are explicitly listed,
+- every ordered record is visibly enumerated,
+- the Markdown score is 100 with zero linter errors,
 - and the user has been pointed to `qa-create-test-cases` as the next stage.

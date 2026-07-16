@@ -19,6 +19,8 @@ This skill must:
 5. route each issue to `qa-create-test-cases`,
 6. emit a clear pass or fail contract that the orchestrator can act on.
 
+For every test, also invoke `md-code-compliance-review` in report-only mode after reading `md-vanilla-style`. Run the Markdown linter and treat its result as a separate flawless gate. Route Markdown fixes to `qa-create-test-cases`; this review skill remains read-only.
+
 ## Use this skill when
 
 Use this skill when the task is about:
@@ -50,6 +52,8 @@ The chosen standard is fixed for the session once execution starts.
 - `<STORY-ID>/tests/*.md` — the Manual test files.
 - `<STORY-ID>/requirements.md` — the decomposed requirements and `REQ-###` IDs.
 - `<STORY-ID>/traceability.md` — the requirement-to-test matrix.
+- `md-vanilla-style` — the mandatory Markdown authoring contract.
+- `md-code-compliance-review` — the Markdown scoring contract and linter.
 
 ## Fixed rubric
 
@@ -87,7 +91,7 @@ If the user asks to change a weight, guide them, apply the new weights for this 
 
 Every test must score strictly greater than 95 on its weighted total.
 
-A single test at or below 95 fails the whole story. The gate is per test, not an aggregate.
+A single test at or below 95 fails the whole story. A Markdown score below 100 or any Markdown linter error also fails that test. Both gates are per test, not aggregate.
 
 ## Scoring guidance
 
@@ -100,55 +104,49 @@ Scores must reflect real quality, not optimism.
 
 ## Output contract
 
-### Pass
-
-If every test scores greater than 95, output exactly:
+Always emit a complete scoring table for each reviewed test. Do not replace per-test tables with an aggregate table.
 
 ```markdown
-Complies with all rules. All tests exceed 95.
+### <test-id> scoring table
 
-| Test | Score | Status |
-|---|---:|---|
-| <id> | <0-100> | PASS |
-
-**Adjustments Needed**: false
-```
-
-### Fail
-
-If any test scores at or below 95, output exactly:
-
-```markdown
-Does not comply. <N> of <M> tests are at or below 95.
-
-| Test | Score | Status |
-|---|---:|---|
-| <id> | <0-100> | PASS or FAIL |
-
-### Failing test detail
-#### <id> — <score>
-| Dimension | Weight | Score |
-|---|---:|---:|
-| Requirement coverage & traceability | 20 | <0-100> |
-| Step atomicity & clarity | 15 | <0-100> |
-| Expected-result verifiability | 15 | <0-100> |
-| Negative/edge coverage | 15 | <0-100> |
-| Xray-structure compliance | 15 | <0-100> |
-| Field completeness | 10 | <0-100> |
-| Data adequacy | 5 | <0-100> |
-| Consistency / no duplication | 5 | <0-100> |
+| Dimension | Weight | Score | Status |
+|---|---:|---:|---|
+| Requirement coverage & traceability | 20 | <0-100> | PASS or FAIL |
+| Step atomicity & clarity | 15 | <0-100> | PASS or FAIL |
+| Expected-result verifiability | 15 | <0-100> | PASS or FAIL |
+| Negative/edge coverage | 15 | <0-100> | PASS or FAIL |
+| Xray-structure compliance | 15 | <0-100> | PASS or FAIL |
+| Field completeness | 10 | <0-100> | PASS or FAIL |
+| Data adequacy | 5 | <0-100> | PASS or FAIL |
+| Consistency / no duplication | 5 | <0-100> | PASS or FAIL |
+| **QA weighted total** | **100** | **<0-100>** | **PASS or FAIL** |
+| Markdown compliance | Gate: 100 | <0-100> | PASS or FAIL |
+| Markdown linter errors | Gate: 0 | <count> | PASS or FAIL |
+| **Per-test result** | — | — | **PASS or FAIL** |
 
 Issues (route to qa-create-test-cases):
-- <dimension>: <specific, actionable issue>
 
-**Adjustments Needed**: true
+1. <dimension and exact actionable issue; include Markdown line number when applicable>
+
+**Adjustments Needed**: true or false
 ```
 
-No extra text. Issues must be concrete enough for `qa-create-test-cases` to fix without re-analysis.
+Set Per-test result to PASS only when QA weighted total is strictly greater than 95, Markdown compliance is exactly 100, and Markdown linter errors equal zero. Issues must be concrete enough for `qa-create-test-cases` to fix without re-analysis.
+
+After all per-test tables, begin the machine-readable decision with exactly one of:
+
+```text
+Complies with all rules. All tests exceed 95 and all Markdown files are flawless.
+```
+
+```text
+Does not comply. One or more tests failed the QA or Markdown gate.
+```
 
 ## Routing rules
 
 - All fixable issues route to `qa-create-test-cases`.
+- Markdown issues route to `qa-create-test-cases` with exact file line numbers from `md-code-compliance-review`.
 - A coverage gap with no matching requirement routes to `qa-decompose-requirements`, because the missing requirement must exist before a test can cover it.
 
 ## Hard constraints
@@ -157,14 +155,15 @@ No extra text. Issues must be concrete enough for `qa-create-test-cases` to fix 
 - Do not author or delete tests.
 - Do not sync to Xray.
 - Do not pass a story while any test is at or below 95.
+- Do not pass a test below 100 Markdown compliance or with any Markdown linter error.
 - Do not change rubric weights unless the user explicitly asks, and never break the sum-to-100 rule.
 - Do not emit vague issues; every issue must be actionable.
-- Do not omit the score table.
+- Do not omit the complete scoring table for any test.
 
 ## Completion condition
 
-This skill is complete for a run when it has emitted a valid pass or fail contract with the per-test score table. The story is only cleared when the contract begins with:
+This skill is complete for a run when it has emitted a valid pass or fail contract with every per-test score table. The story is only cleared when the decision states:
 
 ```text
-Complies with all rules. All tests exceed 95.
+Complies with all rules. All tests exceed 95 and all Markdown files are flawless.
 ```
