@@ -83,6 +83,38 @@ def lint_frontmatter(lines: list[str], errors: list[str]) -> int:
     return closing_index + 1
 
 
+def open_fence(
+    fence: tuple[str, str], index: int, errors: list[str]
+) -> tuple[str, int, str]:
+    """Validate and return the state for an opening code fence."""
+
+    marker, info = fence
+    language = info.strip().lower()
+    if not language:
+        add_error(errors, index + 1, "opening code fence has no language")
+    if language in {"yaml", "yml"}:
+        add_error(errors, index + 1, "YAML is permitted only in frontmatter")
+
+    return marker, index, language
+
+
+def lint_fenced_content(
+    line: str, index: int, language: str, errors: list[str]
+) -> None:
+    """Validate one content line within a fenced code block."""
+
+    if language != "json" or not line.strip():
+        return
+
+    indentation = len(line) - len(line.lstrip(" "))
+    if indentation % 4:
+        add_error(
+            errors,
+            index + 1,
+            "JSON code indentation is not a multiple of four spaces",
+        )
+
+
 def lint_fences(lines: list[str], body_start: int, errors: list[str]) -> set[int]:
     """Validate fences and return line indexes contained in fenced blocks."""
 
@@ -95,29 +127,16 @@ def lint_fences(lines: list[str], body_start: int, errors: list[str]) -> set[int
         if opening is None:
             if fence is None:
                 continue
-            marker, info = fence
-            language = info.strip()
-            if not language:
-                add_error(errors, index + 1, "opening code fence has no language")
-            if language.lower() in {"yaml", "yml"}:
-                add_error(errors, index + 1, "YAML is permitted only in frontmatter")
-            opening = (marker, index, language.lower())
+            opening = open_fence(fence, index, errors)
             fenced_lines.add(index)
             continue
 
         fenced_lines.add(index)
-        marker, opening_index, language = opening
+        marker, _, language = opening
         if line == marker:
             opening = None
             continue
-        if language == "json" and line.strip():
-            indentation = len(line) - len(line.lstrip(" "))
-            if indentation % 4:
-                add_error(
-                    errors,
-                    index + 1,
-                    "JSON code indentation is not a multiple of four spaces",
-                )
+        lint_fenced_content(line, index, language, errors)
 
     if opening is not None:
         _, opening_index, _ = opening
@@ -212,7 +231,7 @@ def lint_line_length(
         if index in fenced_lines or len(line) <= MAX_LINE_LENGTH:
             continue
         stripped = line.strip()
-        if stripped.startswith("|") or "http://" in line or "https://" in line:
+        if stripped.startswith("|") or "://" in line:
             continue
         add_error(
             errors,
