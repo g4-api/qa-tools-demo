@@ -37,8 +37,9 @@ Keep YAML only in frontmatter. Require these fields:
 | `currentStep` | Integer or null | Next unresolved authored step. |
 | `startedAt` | String | Observed ISO 8601 timestamp. |
 | `updatedAt` | String | Observed ISO 8601 timestamp. |
-| `tester` | String | Tester-provided identity. |
+| `tester` | String | Fixed non-secret identity configured with the PAT, or `configured-pat-account`. |
 | `environment` | String | Environment reference or concise identifier. |
+| `xrayExecutionKey` | String or null | Xray Test Execution key after synchronization, otherwise null. |
 
 Allowed execution statuses are:
 
@@ -54,10 +55,11 @@ Keep the body readable Markdown. Require these sections in order:
 
 1. `# Execution Journal`.
 2. `## Execution Context`.
-3. `## Step Results`.
-4. `## Linked Defects`.
-5. `## Decisions`.
-6. `## Next Action`.
+3. `## Xray Synchronization`.
+4. `## Step Results`.
+5. `## Linked Defects`.
+6. `## Decisions`.
+7. `## Next Action`.
 
 Enumerate every context fact, step result, defect, decision, and next action. Preserve authored step numbers inside their
 result records. Restart visible numbering at `1` under every section.
@@ -73,6 +75,18 @@ For each step result, record:
 7. Recorded timestamp.
 
 Allowed step results are `Not run`, `Passed`, `Failed`, `Blocked`, `Skipped`, and `Analysis pending`.
+
+For Xray synchronization, record:
+
+1. Sync status: `Not requested`, `Pending`, `Synchronized`, or `Failed`.
+2. Test Execution key or `None`.
+3. Test Run identifier or `None`.
+4. Last confirmed one-based authored step or `None`.
+5. Confirmed Test Run status or `None`.
+6. Xray warnings or `None`.
+
+Only `qa-execute-manual-tests` writes synchronization receipts into the journal. Never persist PAT values, authorization
+headers, or Basic-authentication material.
 
 ## Persistence rules
 

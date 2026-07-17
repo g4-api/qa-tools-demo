@@ -2,15 +2,16 @@
 name: qa-execute-manual-tests
 description: >-
   Guide a tester through a new or resumed manual test execution in guided or bulk mode, persist an execution journal,
-  collect observations and evidence references, compare actual and expected results, delegate mismatches for analysis,
-  and resume after approved defect creation. Use when a finalized manual test must be run, continued, blocked, or closed.
+  collect observations and evidence references, compare actual and expected results, optionally synchronize the run to
+  Xray Cloud, delegate mismatches for analysis, and resume after approved defect creation. Use when a finalized manual
+  test must be run, continued, synchronized, blocked, or closed.
 ---
 
 # QA Execute Manual Tests
 
 ## Purpose
 
-Run a finalized manual test with the tester while preserving execution continuity and human control.
+Run a finalized manual test while preserving execution continuity, concise tester interaction, and human control.
 
 Own tester interaction, step progression, result recording, and the execution journal. Do not determine root cause,
 author defects, change test definitions, or participate in the authoring review loop.
@@ -33,12 +34,20 @@ Resolve only values the request did not provide:
 
 1. Finalized test file and test identifier.
 2. Story identifier and requirement references.
-3. Tester identity when the execution record requires it.
-4. Environment and build references.
-5. Existing execution identifier when resuming.
+3. Environment and build references.
+4. Existing execution identifier when resuming.
+5. Optional Xray Test Plan or Test Execution destination when synchronization was requested.
 
 Load the test specification, requirements, traceability, linked documentation, execution history, linked defects,
 environment information, and available evidence references. Treat the test and requirement files as read-only.
+
+## Authentication identity
+
+Use the fixed account identity configured with the Personal Access Token (PAT) as the journal tester. Never ask for a
+tester name, username, password, or PAT. Never read, decode, display, or persist the PAT.
+
+When the configured account exposes no non-secret display value, record `configured-pat-account` as the stable tester
+identity. Treat authentication as environment-owned state rather than an execution input.
 
 ## Startup
 
@@ -46,8 +55,10 @@ environment information, and available evidence references. Treat the test and r
 2. Classify the run as new or resumed.
 3. For a new run, mint the next story-scoped `EXEC-###` identifier and copy the journal template.
 4. For a resumed run, load the journal and continue from its recorded next action.
-5. Always ask the tester to select guided or bulk mode, showing the recorded mode when resuming.
-6. Explain that the tester may switch modes after any recorded result.
+5. Select guided mode when the request says `step by step`, `guided`, or gives no mode.
+6. Select bulk mode when the request says `bulk`, `all steps`, or an equivalent unambiguous phrase.
+7. Preserve the recorded mode when resuming unless the tester explicitly requests a switch.
+8. Explain that the tester may switch modes after any recorded result.
 
 Do not silently create a second active execution for the same tester and test. Show the unfinished execution and ask
 whether to resume it or begin a distinct run.
@@ -56,14 +67,26 @@ whether to resume it or begin a distinct run.
 
 1. Present exactly one unresolved step.
 2. Show its step number, objective or action, test data, expected results, and relevant notes.
-3. Wait for the tester's observation and evidence references.
-4. Compare the observation with the expected results, requirement, and linked documentation.
-5. If they match, record `Passed`, checkpoint the journal, and present the next unresolved step.
-6. If they do not match, record `Analysis pending`, checkpoint the journal, and invoke `qa-analyze-test-failure`.
-7. Present the analysis and ask the tester to approve the next action.
-8. Record the tester's decision before continuing.
+3. Accept a concise result or a detailed observation with evidence references.
+4. Normalize a standalone `pass` as `Passed`, observation `Tester reported pass.`, and evidence `None`.
+5. Require an actual observation when the tester reports failure without describing what happened.
+6. Compare the observation with the expected results, requirement, and linked documentation.
+7. If they match, record `Passed`, checkpoint the journal, and present the next unresolved step.
+8. If they do not match, record `Analysis pending`, checkpoint the journal, and invoke `qa-analyze-test-failure`.
+9. Present the analysis and ask the tester to approve the next action.
+10. Record the tester's decision before continuing.
 
 Never present the next step before the current result and next action are recorded.
+
+Treat concise responses as an explicit interaction grammar:
+
+- `pass` records the complete passed result described above without another evidence question.
+- `fail: <observation>` records `Analysis pending` with evidence `None` unless evidence follows.
+- `blocked: <reason>` and `skip: <reason>` provide the reason required for the corresponding human-control decision.
+- A response containing evidence paths or links preserves those references exactly.
+
+Do not invent an observation beyond the fixed `Tester reported pass.` normalization or infer evidence that was not
+provided.
 
 ## Bulk mode
 
@@ -124,14 +147,32 @@ The tester owns these decisions. This skill owns workflow consistency and persis
 
 ## External-system boundary
 
-The available Xray tools create and update test definitions and Test Plans. They do not create Test Executions or update
-test-run results. Never call `new_xray_test`, `update_xray_test`, or `new_xray_test_plan` to persist execution state.
+Keep execution state local unless the tester explicitly requests Xray creation or synchronization. A direct request such
+as `create execution on Xray` authorizes the required non-destructive execution mutations; do not ask for duplicate
+approval when all payload values come from the journal, finalized test, configured destination, or tool responses.
 
-Keep execution state local until dedicated Xray execution tools and exact contracts are available.
+Invoke `qa-xray-sync` for Xray persistence and pass the journal as read-only source data. Require the sync skill to return
+a receipt; only this skill writes that receipt into the journal.
+
+For a new Xray-backed execution:
+
+1. Call `new_xray_execution` with every in-scope Test key so Xray creates real Test Runs.
+2. Call `add_xray_test_executions_to_plan` when a Test Plan destination was supplied.
+3. Record each terminal authored step through `update_xray_execution_step` using the one-based authored step number.
+4. Call `update_xray_test_run_status` after every terminal local Test result is known.
+5. Persist the returned execution key, Test Run identifier, confirmed step, status, and warnings in the journal.
+
+For an existing Xray Test Execution, call `add_xray_tests_to_execution` before recording results. Never represent Xray
+execution membership with a generic Jira issue link or a description-only summary. Stop with the exact missing tool when
+a required dedicated mutation is unavailable.
 
 ## Completion
 
 Complete when every step has a tester-owned terminal result and the journal status is `completed`, or when the tester
 explicitly blocks or ends the run and the journal records the reason and next action.
 
-Return the execution identifier, test identifier, status, result counts, linked defects, journal path, and next action.
+When Xray synchronization was requested, complete only after the journal contains a successful receipt or an explicit
+sync failure with its next action.
+
+Return the execution identifier, test identifier, status, result counts, Xray execution receipt, linked defects, journal
+path, and next action.

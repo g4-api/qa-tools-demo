@@ -10,12 +10,22 @@ These contracts come from the authoritative definitions in `Mcp.Xray.Domain/Defi
 | Create a test | `new_xray_test` | `project`, `scenario` |
 | Create a Test Plan | `new_xray_test_plan` | `project`, `summary` |
 | Update a test | `update_xray_test` | `key` |
+| Add Tests to a Test Plan | `add_xray_tests_to_plan` | `key`, `jql` |
+| Create a Test Execution | `new_xray_execution` | `project`, `summary`, `testKeys` |
+| Add Tests to a Test Execution | `add_xray_tests_to_execution` | `executionKey`, `testKeys` |
+| Add Test Executions to a Test Plan | `add_xray_test_executions_to_plan` | `testPlanKey`, `testExecutionKeys` |
+| Update a Test Run Step | `update_xray_execution_step` | `executionKey`, `testKey`, `stepNumber`, one outcome |
+| Update a Test Run status | `update_xray_test_run_status` | `executionKey`, `testKey`, `status` |
 
 Do not substitute a generic Jira issue tool or a differently named Xray tool for these operations.
 
-All three input schemas are closed at the top level (`additionalProperties: false`).
+All input schemas are closed at the top level (`additionalProperties: false`).
 Never forward a local artifact object directly.
 Construct a new allowlisted payload for the selected tool.
+
+Authentication is preconfigured through the MCP server's Personal Access Token (PAT) transport. None of these tools
+accept authentication properties. Never add a username, password, PAT, cookie, Basic-authentication value, or
+authorization header to a payload.
 
 ## `new_xray_test`
 
@@ -107,6 +117,103 @@ Example:
 }
 ```
 
+## `add_xray_tests_to_plan`
+
+Allowed top-level properties:
+
+| Property | Type | Rules |
+| --- | --- | --- |
+| `key` | string | Required existing Test Plan Jira key. |
+| `jql` | string | Required query selecting the Tests added to the Test Plan. |
+
+## `new_xray_execution`
+
+Allowed top-level properties:
+
+| Property | Type | Rules |
+| --- | --- | --- |
+| `project` | string | Required Jira project key. |
+| `summary` | string | Required human-readable Test Execution summary. |
+| `testKeys` | array of strings | Required, unique, and non-empty. |
+| `description` | string | Optional. |
+| `testEnvironments` | array of strings | Optional unique environment names. |
+| `customFields` | array | Optional create-shaped custom fields with string `name` and JSON-compatible `value`. |
+
+Accept success only when the response contains non-empty string `id`, `key`, and `link`; arrays `testKeys`,
+`testRunIds`, `createdTestEnvironments`, and `warnings` must also be present. The tool waits for every Test Run before
+returning success.
+
+Example:
+
+```json
+{
+    "project": "PROJ",
+    "summary": "Authentication manual execution",
+    "testKeys": [
+        "PROJ-101"
+    ],
+    "testEnvironments": [
+        "staging"
+    ]
+}
+```
+
+## `add_xray_tests_to_execution`
+
+Allowed top-level properties:
+
+| Property | Type | Rules |
+| --- | --- | --- |
+| `executionKey` | string | Required existing Test Execution Jira key. |
+| `testKeys` | array of strings | Required, unique, and non-empty. |
+
+Accept success only when the response contains non-empty `executionId` and `executionKey`; arrays `testIds`,
+`testKeys`, `testRunIds`, and `warnings` must also be present. The tool waits for every requested Test Run before
+returning success.
+
+## `add_xray_test_executions_to_plan`
+
+Allowed top-level properties:
+
+| Property | Type | Rules |
+| --- | --- | --- |
+| `testPlanKey` | string | Required existing Test Plan Jira key. |
+| `testExecutionKeys` | array of strings | Required, unique, and non-empty. |
+
+Accept success only when the response contains non-empty `testPlanId` and `testPlanKey`; arrays `testExecutionIds`,
+`testExecutionKeys`, and `warnings` must also be present.
+
+## `update_xray_execution_step`
+
+Allowed top-level properties:
+
+| Property | Type | Rules |
+| --- | --- | --- |
+| `executionKey` | string | Required Test Execution Jira key. |
+| `testKey` | string | Required Test Jira key. |
+| `stepNumber` | integer | Required one-based authored step number. |
+| `actualResult` | string | Optional observed result; empty clears the current value. |
+| `comment` | string | Optional execution comment; empty clears the current value. |
+| `status` | string | Optional Xray Test Run Step status. |
+| `iterationRank` | string | Optional data-set iteration rank. |
+
+Require at least one of `actualResult`, `comment`, or `status`. The tool waits for Test Run registration before selecting
+the opaque step identifier. Accept success only when the response contains execution, Test, Test Run, and step identities
+together with the one-based `stepNumber` and `warnings`.
+
+## `update_xray_test_run_status`
+
+Allowed top-level properties:
+
+| Property | Type | Rules |
+| --- | --- | --- |
+| `executionKey` | string | Required Test Execution Jira key. |
+| `testKey` | string | Required Test Jira key. |
+| `status` | string | Required Xray Test Run status name or identifier. |
+
+Accept success only when the response contains non-empty execution, Test, and Test Run identities plus the non-empty
+status value confirmed by Xray.
+
 ## `update_xray_test`
 
 Allowed top-level properties:
@@ -188,8 +295,11 @@ Before every mutation:
 4. Verify required properties, primitive types, nested required properties, and `expectedResults` minimum length.
 5. Verify that no additional property remains at any closed-object level.
 6. Record the exact payload.
-    1. In standalone mode, show it in the approval plan.
-    2. In orchestrated mode, record it immediately before the pre-approved call.
+    1. Show it when the interaction contract requires a plan or unresolved-value decision.
+    2. Otherwise, record it immediately before the authorized call.
     3. Redact secrets when applicable.
 7. Invoke the exact mutation tool.
 8. Accept success only when the result contains non-empty string `id`, `key`, and `link`.
+
+For non-create execution tools, apply the operation-specific success fields documented above instead of the generic
+`id`, `key`, and `link` rule. Treat an `error` and `message` envelope as failure even when transport status is successful.

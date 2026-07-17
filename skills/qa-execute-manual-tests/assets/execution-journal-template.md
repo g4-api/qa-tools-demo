@@ -7,8 +7,9 @@ mode: guided
 currentStep: 1
 startedAt: REPLACE_WITH_OBSERVED_TIMESTAMP
 updatedAt: REPLACE_WITH_OBSERVED_TIMESTAMP
-tester: replace-with-tester
+tester: configured-pat-account
 environment: replace-with-environment
+xrayExecutionKey: null
 ---
 
 # Execution Journal
@@ -19,6 +20,15 @@ environment: replace-with-environment
 2. Story: `STORY-000`.
 3. Environment: Replace with the observed environment.
 4. Build: Replace with the observed build.
+
+## Xray Synchronization
+
+1. Status: Not requested.
+2. Test Execution: None.
+3. Test Run: None.
+4. Last confirmed step: None.
+5. Confirmed Test Run status: None.
+6. Warnings: None.
 
 ## Step Results
 
@@ -37,7 +47,7 @@ environment: replace-with-environment
 
 ## Decisions
 
-1. The tester selected guided mode.
+1. Guided mode was selected from the request or default execution behavior.
 
 ## Next Action
 

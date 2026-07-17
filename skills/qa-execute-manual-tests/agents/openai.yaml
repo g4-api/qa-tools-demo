@@ -1,4 +1,4 @@
 interface:
   display_name: "Manual Test Execution"
-  short_description: "Guide and resume manual test executions"
-  default_prompt: "Use $qa-execute-manual-tests to run or resume a finalized manual test."
+  short_description: "Guide, resume, and sync manual test executions"
+  default_prompt: "Use $qa-execute-manual-tests to run or resume a finalized manual test and sync it when requested."

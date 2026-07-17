@@ -63,3 +63,36 @@ Require `qa-author-defects` to return:
 7. Failure reason when status is `failed`.
 
 Record the receipt in the journal. Never infer a successful creation from a partial or invalid response.
+
+## Xray synchronization request
+
+Pass these fields from `qa-execute-manual-tests` to `qa-xray-sync` only after Xray persistence was requested:
+
+| Field | Required | Meaning |
+| --- | --- | --- |
+| Execution journal | Yes | Read-only journal path and recorded execution facts. |
+| Test key | Yes | Existing Xray Test Jira key. |
+| Project key | Yes for creation | Jira project containing the Test Execution. |
+| Summary | Yes for creation | Human-readable Test Execution summary derived from approved execution facts. |
+| Existing execution key | No | Target Test Execution when adding a Test or replaying results. |
+| Test Plan key | No | Test Plan receiving the created or existing Test Execution. |
+| Test environment | No | Explicit environment name already present in the journal. |
+
+Authentication is environment-owned. Never add a tester name, username, password, PAT, authorization header, or
+credential-derived value to the handoff.
+
+## Xray synchronization receipt
+
+Require `qa-xray-sync` to return:
+
+1. Status: `synchronized`, `partial`, or `failed`.
+2. Test Execution numeric identifier and Jira key when available.
+3. Test numeric identifier and Jira key.
+4. Test Run opaque identifier when available.
+5. Confirmed one-based authored step numbers.
+6. Confirmed Test Run status when applied.
+7. Non-fatal Xray warnings.
+8. Exact failed operation and actionable error when status is not `synchronized`.
+
+Record the receipt in the journal. Never infer Test association from a Jira issue link or infer execution success from an
+HTTP or GraphQL status alone.
