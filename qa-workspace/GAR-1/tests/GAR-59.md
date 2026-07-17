@@ -1,6 +1,6 @@
 ---
-id: AGENT-001
-xrayKey: null
+id: GAR-59
+xrayKey: GAR-59
 type: Manual
 summary: Approved tests synchronize to Xray, map to their story, and produce a coverage and PR package
 priority: High

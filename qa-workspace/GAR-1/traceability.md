@@ -12,8 +12,8 @@ coverage: 100
 | 1 | `REQ-000` | `GAR-58` |
 | 2 | `REQ-001` | `GAR-58` |
 | 3 | `REQ-002` | `GAR-58` |
-| 4 | `REQ-003` | `AGENT-001` |
-| 5 | `REQ-004` | `AGENT-001` |
+| 4 | `REQ-003` | `GAR-59` |
+| 5 | `REQ-004` | `GAR-59` |
 
 ## Coverage summary
 
@@ -27,9 +27,4 @@ coverage: 100
 | # | Internal identifier | Xray key | Sync state |
 | --- | --- | --- | --- |
 | 1 | `AGENT-000` | `GAR-58` | Synchronized |
-| 2 | `AGENT-001` | Not assigned | Not synchronized |
-
-## Sync notes
-
-1. `AGENT-001` remains unsynchronized because the Xray endpoint refused the connection during this run.
-2. `AGENT-001` keeps its internal identifier until a successful create response returns a real key.
+| 2 | `AGENT-001` | `GAR-59` | Synchronized |
