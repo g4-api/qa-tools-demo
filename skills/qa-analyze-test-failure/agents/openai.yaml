@@ -1,0 +1,4 @@
+interface:
+  display_name: "Test Failure Analysis"
+  short_description: "Classify unexpected manual test results"
+  default_prompt: "Use $qa-analyze-test-failure to investigate an unexpected manual test result."

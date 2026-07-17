@@ -1,6 +1,6 @@
 # QA Testing Tools — Skill Suite
 
-A set of seven interactive skills for manual QA in VS Code + AI: turn requirements into
+A set of ten interactive skills for manual QA in VS Code + AI: turn requirements into
 Xray-ready Manual test cases, quality-gate them with an automated review loop, sync them into
 Xray, and version-control the results through per-test commits and a review-ready PR.
 
@@ -14,7 +14,7 @@ version-controllable, and traceable. Bring the developer's state of mind to QA.
 ## The skills
 
 | # | Skill | Role |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `qa-decompose-requirements` | Read a document or Jira story (Atlassian MCP) and decompose it into atomic, ID-tagged, testable requirements. |
 | 2 | `qa-create-test-cases` | Author / update / refactor Manual Xray test cases from the requirements, one file per test. |
 | 3 | `qa-review-test-cases` | Score each test on a fixed weighted rubric; enforce the per-test **>95** gate; report and route (never edits files). |
@@ -22,10 +22,13 @@ version-controllable, and traceable. Bring the developer's state of mind to QA.
 | 5 | `qa-xray-sync` | Create/update tests in Xray via MCP (batch or single-test), link to the story, and swap internal IDs for real Xray keys. |
 | 6 | `qa-git-commit` | Commit each finalized test (and the meta files) to `qa/<STORY-ID>-tests` via a GitHub MCP, one commit per test. |
 | 7 | `qa-github-pr` | Open one detailed, ready-for-review PR when the cycle completes. |
+| 8 | `qa-execute-manual-tests` | Guide new or resumed manual executions and own the persistent execution journal. |
+| 9 | `qa-analyze-test-failure` | Classify unexpected results using evidence without changing execution state. |
+| 10 | `qa-author-defects` | Draft and synchronize tester-approved product defects, then return a receipt. |
 
 ## Flow
 
-```
+```text
 requirement (doc / Jira)
         │
         ▼
@@ -47,6 +50,29 @@ requirement (doc / Jira)
 
 Skills 2, 3, 5, 6, 7 can also be run standalone; skill 4 is the normal entry point for a full run.
 
+The execution pipeline is separate from authoring. It consumes finalized tests but never edits them:
+
+```text
+finalized test
+    |
+    v
+[8] qa-execute-manual-tests
+    |
+    +-- expected result matches --> record result --> next step
+    |
+    +-- unexpected result --> [9] qa-analyze-test-failure
+                                  |
+                                  +-- tester decision
+                                          |
+                                          +-- approved product defect --> [10] qa-author-defects
+                                                                               |
+                                                                               v
+                                                                      execution resumes
+```
+
+The execution skill owns the journal. Failure analysis is read-only, and defect authoring returns a receipt to the
+execution skill after synchronization.
+
 ## Upstream (product): `po-author-requirements`
 
 A product-owner skill that feeds the QA suite. From an epic-level prompt (e.g. "login screen")
@@ -55,7 +81,7 @@ it drives scope to 100%, plans an **epic → feature → story** tree, builds it
 (a missing project is a hard blocker). The Story keys it creates become the `STORY-ID`s that
 `qa-decompose-requirements` works from.
 
-```
+```text
 epic prompt ──► [po-author-requirements] ──► epic/feature/story in Jira ──► Story keys
                                                                               │
                                                                               ▼
@@ -72,13 +98,18 @@ a *single* upfront approval and then runs the fix loop automatically to the goal
 
 ## Workspace & ID conventions
 
-```
+```text
 <workspace-root>/            # default ./qa-workspace (hybrid: persist by default, inline on request)
   <STORY-ID>/                # Jira/Xray story key, else internal AGENT-S###
     requirements.md          # decomposition + REQ-### traceability IDs
     traceability.md          # REQ-ID → test-ID matrix
     tests/
       AGENT-000.md           # one Manual test per file; Markdown + YAML frontmatter
+    executions/
+      EXEC-000/
+        journal.md           # persistent execution facts and next action
+        defects/             # local defect drafts or synchronized defect records
+        evidence/            # referenced execution evidence
 ```
 
 - **Requirements** get stable `REQ-###` IDs (story-scoped, from `REQ-000`).
@@ -93,23 +124,24 @@ Review anchors to **General best practice** by default; the user may select **IS
 
 ---
 
-# Reference: Jira `additional_fields` parsing
+## Reference: Jira `additional_fields` parsing
 
 Reference notes for the Jira-facing skills (`qa-decompose-requirements`, `qa-xray-sync`) when
 creating or updating issues through the Atlassian MCP wrapper.
 
-## How `additional_fields` is parsed (what the code does)
+### How `additional_fields` is parsed (what the code does)
 
 * It lower-cases each key and looks it up in a **field map** (from `_generate_field_map()`).
 * It treats keys that **start with `customfield_`** as **direct Jira field IDs** (skips the map).
 * It **ignores** `parent`, `assignee`, and `components` inside `additional_fields` (they’re handled elsewhere).
-* It formats a few known fields (`priority`, `labels`, `fixVersions/versions/components`, `reporter`, `duedate`, `datetime` types). Everything else is sent **as-is**, so you must supply the correct Jira shape for that field’s schema.
+* It formats a few known fields (`priority`, `labels`, `fixVersions/versions/components`, `reporter`, `duedate`, and
+  `datetime` types). Everything else is sent **as-is**, so supply the correct Jira shape for that field's schema.
 
 ---
 
-## Custom fields — two safe ways
+### Custom fields — two safe ways
 
-### By **ID** (always works)
+#### By **ID** (always works)
 
 Use the exact Jira ID (e.g., `customfield_10081`).
 
@@ -138,9 +170,9 @@ Use the exact Jira ID (e.g., `customfield_10081`).
 }
 ```
 
-### By **name** (if your field map exposes it)
+#### By **name** (if your field map exposes it)
 
-If `_generate_field_map()` maps names → IDs, you can pass the **field’s display name** (case-insensitive). The code will resolve it.
+If `_generate_field_map()` maps names to IDs, pass the field's display name without case sensitivity. The code resolves it.
 
 ```json
 "additional_fields": {
@@ -163,9 +195,10 @@ If `_generate_field_map()` maps names → IDs, you can pass the **field’s disp
 
 ---
 
-## `issueLinks` format (and directionality)
+### `issueLinks` format (and directionality)
 
-The code will lower-case your key and map `issueLinks` → `issuelinks` (if present in the map). It doesn’t reformat the value, so you must provide the proper Jira structure:
+The code lower-cases the key and maps `issueLinks` to `issuelinks` when present in the map. It does not reformat the value,
+so provide the proper Jira structure:
 
 ```json
 "additional_fields": {
@@ -230,13 +263,14 @@ Examples:
 }
 ```
 
-> Heads-up: Some Jira Cloud configs **don’t allow** setting `issuelinks` during **create**. If you get a 400 for links specifically, create the issue first, then call the link endpoint (your MCP server may expose a `link_issue` helper).
+> Heads-up: Some Jira Cloud configurations do not allow setting `issuelinks` during creation. If links cause a 400 error,
+> create the issue first, then call the link endpoint. The MCP server may expose a `link_issue` helper.
 
 ---
 
-## Putting it together
+### Putting it together
 
-### Sub-task (use `parent` as a **string** outside `additional_fields`, per your wrapper)
+#### Sub-task (use `parent` as a **string** outside `additional_fields`, per your wrapper)
 
 ```json
 {
@@ -268,7 +302,7 @@ Examples:
 }
 ```
 
-### Task (no `parent`; link via `issueLinks`)
+#### Task (no `parent`; link via `issueLinks`)
 
 ```json
 {
@@ -297,7 +331,7 @@ Examples:
 
 ---
 
-## Quick checklist
+### Quick checklist
 
 * ✅ For **custom fields**, prefer `customfield_#####`. Names work only if your field map includes them.
 * ✅ Don’t put `parent`, `assignee`, or `components` inside `additional_fields` (the code skips them).
