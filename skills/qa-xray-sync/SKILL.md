@@ -137,6 +137,8 @@ For each local test file:
 
 - Read YAML only from the metadata frontmatter. Parse Test Specifications, Test Setup, Steps, and Test Teardown from
   the readable Markdown body.
+- Treat the level-one identity heading and `xrayLink` as local reconciliation fields. Never include either in a mutation
+  payload.
 - In each action section, treat the top-level ordered item labeled Action as one Xray action and its nested ordered
   Expected results as that action's `expectedResults` array.
 - Require action and expected-result numbering to start at `1`, remain gapless, and restart in each section. Stop on
@@ -170,8 +172,9 @@ For each local test file:
 3. Validate and call `new_xray_test`.
 4. Require non-empty string `id`, `key`, and `link` in the response.
 5. Rename `AGENT-###.md` to `<XRAYKEY>.md`.
-6. Set `xrayKey` and `id` in frontmatter to the returned key.
-7. Record `AGENT-### -> <XRAYKEY>` in `traceability.md`.
+6. Set `xrayKey` and `id` in frontmatter to the returned key and `xrayLink` to the exact returned link.
+7. Replace the H1 with `# Test Case: [<XRAYKEY>](<returned-link>)`.
+8. Record `AGENT-### -> <XRAYKEY>` in `traceability.md`.
 
 Do not reconcile any local identifier when the call or response validation fails.
 
@@ -182,6 +185,8 @@ Do not reconcile any local identifier when the call or response validation fails
 3. Classify a payload containing `key` alone as SKIP.
 4. Validate and call `update_xray_test`.
 5. Require non-empty string `id`, `key`, and `link` in the response.
+6. Refresh `id`, `xrayKey`, and `xrayLink` from the validated response.
+7. Reconcile the filename and H1 to `# Test Case: [<key>](<link>)` without changing `summary`.
 
 ### Create a Test Plan
 
@@ -251,6 +256,7 @@ Report:
 - Do not represent Test Execution membership with generic Jira links or description text.
 - Do not treat HTTP success as mutation success when the response contains an error envelope.
 - Do not leave a successfully created test with a stale `AGENT-###` filename or frontmatter.
+- Do not leave a synchronized test with a stale, missing, or guessed `xrayLink` or identity heading.
 - Do not break `coveredRequirements` traceability during an ID swap.
 
 ## Completion condition

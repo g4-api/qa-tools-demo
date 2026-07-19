@@ -89,7 +89,8 @@ Example:
 When authoring QA artifacts:
 
 - Keep requirement and test metadata in YAML frontmatter only when the owning skill requires metadata.
-- Use the metadata title or summary as the single level-one body heading so identity remains readable and consistent.
+- Follow the owning artifact's identity-heading contract. A test case may use its stable ID as the level-one heading while
+    retaining its scenario in metadata.
 - Render specifications, setup, test steps, test data, expected results, teardown, coverage,
     and review findings as readable Markdown.
 - Enumerate each requirement and criterion while retaining its stable ID.

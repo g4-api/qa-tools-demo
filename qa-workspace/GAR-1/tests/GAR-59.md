@@ -1,6 +1,7 @@
 ---
 id: GAR-59
 xrayKey: GAR-59
+xrayLink: https://qa-webinar.atlassian.net/browse/GAR-59
 type: Manual
 summary: Approved tests synchronize to Xray, map to their story, and produce a coverage and PR package
 priority: High
@@ -14,7 +15,7 @@ storyKey: GAR-1
 status: draft
 ---
 
-# Approved tests synchronize to Xray, map to their story, and produce a coverage and PR package
+# Test Case: [GAR-59](https://qa-webinar.atlassian.net/browse/GAR-59)
 
 ## Test Specifications
 

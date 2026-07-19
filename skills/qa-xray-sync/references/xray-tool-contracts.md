@@ -272,6 +272,7 @@ Example:
 | Numbered actions under `## Steps` | `steps` | `steps` when changed. |
 | Numbered actions under `## Test Teardown` | `testTeardown` | `testTeardown` when changed. |
 | `xrayKey` | Not accepted; omit. | `key`. |
+| `xrayLink` and `# Test Case: ...` | Not accepted; omit. | Not accepted; omit. |
 | `id`, `type`, `folder`, `testSets`, `coveredRequirements`, `storyKey`, `status`, `data` | Not accepted; omit. | Not accepted; omit. |
 
 Read YAML only from metadata frontmatter.
@@ -300,6 +301,16 @@ Before every mutation:
     3. Redact secrets when applicable.
 7. Invoke the exact mutation tool.
 8. Accept success only when the result contains non-empty string `id`, `key`, and `link`.
+
+After a valid test create or update response:
+
+1. Set local `id` and `xrayKey` to the returned `key`.
+2. Set local `xrayLink` to the exact returned `link`.
+3. Reconcile the filename to `<key>.md`.
+4. Reconcile the H1 to `# Test Case: [<key>](<link>)`.
+5. Run Markdown compliance on every changed local artifact.
+
+Never forward these reconciliation fields into a mutation payload or derive `xrayLink` from the key.
 
 For non-create execution tools, apply the operation-specific success fields documented above instead of the generic
 `id`, `key`, and `link` rule. Treat an `error` and `message` envelope as failure even when transport status is successful.
