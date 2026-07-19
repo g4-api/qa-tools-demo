@@ -9,7 +9,8 @@ description: Read a requirement source (a document or a Jira user story via the 
 
 This skill turns a raw requirement source into a clean, decomposed, traceable requirements artifact.
 
-It is the first stage of the QA test authoring suite. Its output is the single source of truth that the `qa-create-test-cases`, `qa-review-test-cases`, and `qa-orchestrate-test-cases` skills consume.
+It is the first stage of the QA test authoring suite. Its output is the single source of truth that
+`qa-create-test-cases`, `qa-review-test-cases`, and `qa-orchestrate-test-cases` consume.
 
 This skill must:
 1. resolve the requirement source (document or Jira user story),
@@ -19,7 +20,9 @@ This skill must:
 5. surface gaps and open questions instead of inventing answers,
 6. persist the decomposition as a first-class artifact (or output it inline on request).
 
-Before writing or changing any `.md` artifact, read and apply `md-vanilla-style`. After each write, invoke `md-code-compliance-review`, run its linter, repair every finding, and repeat until the file scores 100 with zero linter errors.
+Before writing or changing any `.md` artifact, read and apply `md-vanilla-style`. After each write, invoke
+`md-code-compliance-review`, run its linter, repair every finding, and repeat until the file scores 100 with zero linter
+errors.
 
 This skill does not write test cases. It prepares the ground for them.
 
@@ -37,31 +40,39 @@ Do not use this skill to author, score, or sync test cases. Route those to the t
 
 ## Operating philosophy
 
-Test artifacts are first-class code files. The requirements decomposition is treated with the same rigor as source code: atomic units, stable identifiers, explicit traceability, no invented behavior, and a review-before-execute discipline. Bring the developer's state of mind to QA.
+Test artifacts are first-class code files. Treat requirements decomposition with the same rigor as source code: atomic
+units, stable identifiers, explicit traceability, no invented behavior, and review-before-execute discipline. Bring the
+developer's state of mind to QA.
 
 ## Interaction contract
 
 This skill is interactive. It always follows this base flow:
 
 1. **Load** — the skill is triggered by the user prompt.
-2. **Ask guiding questions** — resolve only what the prompt did not already specify (see below). Never assume when the answer changes the output.
+2. **Ask guiding questions** — resolve only what the prompt did not already specify. Never assume when the answer changes
+    the output.
 3. **Show a plan** — describe exactly what will be retrieved, decomposed, and written.
 4. **Wait for approval** — do not write or fetch destructive changes before the user approves.
 5. **Execute** — perform the decomposition and persist artifacts.
 
-Whenever the skill is in doubt about scope, source completeness, depth, or IDs, it must stop and ask the user rather than guess.
+Whenever the skill is in doubt about scope, source completeness, depth, or IDs, it must stop and ask the user rather than
+guess.
 
 ## Guiding questions to resolve at load
 
 Ask only the ones the prompt left open:
 
-1. **Source** — Is the input a Jira issue key (via Atlassian MCP) or a document (path/URL)? If a document, which format and where?
-2. **Jira pull scope** — Default is to pull the story description, the acceptance-criteria field, linked/child issues, and comments. Always confirm this scope with the user before pulling. After retrieval, show what was pulled and confirm it is complete.
+1. **Source** — Is the input a Jira issue key through Atlassian MCP or a document path or URL? If it is a document, resolve
+    its format and location.
+2. **Jira pull scope** — Default to the story description, acceptance-criteria field, linked or child issues, and comments.
+    Confirm this scope before pulling. After retrieval, show what was pulled and confirm it is complete.
 3. **Depth** — If the user did not specify, present two choices:
-   - **Lightweight** — atomic testable requirements plus acceptance criteria.
-   - **Full breakdown + traceability** — adds business rules, candidate test conditions (positive / negative / edge), NFRs, and a gaps list.
-   Both modes attach IDs.
-4. **Workspace root** — Default is `./qa-workspace`. Persist by default (hybrid). If the user asks for in-conversation-only, do not write files.
+    - **Lightweight** — atomic testable requirements plus acceptance criteria.
+    - **Full breakdown + traceability** — adds business rules, positive, negative, and edge candidate test conditions,
+        non-functional requirements, and a gaps list.
+    Both modes attach IDs.
+4. **Workspace root** — Default to `./qa-workspace` and persist by default. Do not write files when the user requests
+    in-conversation-only output.
 5. **Scope** — Single story/document, or a batch/epic. In batch mode, keep each item in its own story folder.
 
 ## Source retrieval
@@ -71,7 +82,8 @@ Ask only the ones the prompt left open:
 - Use the Atlassian MCP to fetch the issue by key.
 - After confirming pull scope, retrieve: description, acceptance criteria, linked/child issues, and comments.
 - Present a short summary of what was retrieved and ask the user to confirm completeness before decomposing.
-- Never fabricate acceptance criteria or requirements that are not grounded in the retrieved content. Missing content becomes a gap, not an invention.
+- Never fabricate acceptance criteria or requirements that are not grounded in the retrieved content. Treat missing
+    content as a gap, not an invention.
 
 ### Document source
 
@@ -89,13 +101,17 @@ Ask only the ones the prompt left open:
     requirements.md
 ```
 
-- `<STORY-ID>` is the Jira/Xray story key when available (for example `PROJ-123`), otherwise an internal `AGENT-S###` identifier assigned per story, starting at `AGENT-S000`.
+- `<STORY-ID>` is the Jira or Xray story key when available, such as `PROJ-123`. Otherwise, assign a story-scoped internal
+    `AGENT-S###` identifier starting at `AGENT-S000`.
 - In batch mode, each source gets its own `<STORY-ID>` folder.
-- When a real Jira/Xray story key later becomes known for an internal `AGENT-S###` folder, rename the folder and update the metadata header to the real key.
+- When a real Jira or Xray story key becomes known for an internal `AGENT-S###` folder, rename the folder and update the
+    metadata header to the real key.
 
 ### `requirements.md` contents
 
-Use YAML only for metadata frontmatter. Render every requirement, criterion, rule, condition, NFR, gap, and question as readable enumerated Markdown in the body.
+Use YAML only for metadata frontmatter. After frontmatter, use the exact metadata `title` as the single level-one heading
+and first nonblank body line. Render every requirement, criterion, rule, condition, NFR, gap, and question as readable
+enumerated Markdown in the body.
 
 The file must contain, in order:
 
@@ -137,6 +153,8 @@ retrievedAt: 2026-07-17
 depthMode: full
 ---
 
+# Reject invalid credentials
+
 ## Atomic testable requirements
 
 1. **REQ-000:** The system rejects an invalid password.
@@ -155,12 +173,14 @@ Do not place YAML, serialized objects, or machine payloads after the closing fro
 - Requirements use internal `REQ-###` IDs, story-scoped, stable, starting at `REQ-000`.
 - Story folders use the Jira/Xray key when known, otherwise internal `AGENT-S###`.
 - These IDs are the traceability backbone consumed downstream: test cases reference `REQ-###` IDs.
-- When a story or item later exists in Jira/Xray, the internal ID is replaced with the real ID everywhere it appears — in file content and in filenames — for end-to-end consistency.
+- When a story or item later exists in Jira or Xray, replace the internal ID with the real ID everywhere it appears,
+    including file content and filenames, for end-to-end consistency.
 
 ## Hard constraints
 
 - Do not invent requirements, acceptance criteria, or business rules that are not grounded in the source.
 - Do not write body content as YAML; YAML is metadata frontmatter only.
+- Do not emit a body whose first nonblank line is not the single level-one heading matching metadata `title`.
 - Do not complete while `md-code-compliance-review` reports a score below 100 or any linter error.
 - Do not skip the confirm-completeness step after retrieving a Jira source.
 - Do not write test cases in this skill.

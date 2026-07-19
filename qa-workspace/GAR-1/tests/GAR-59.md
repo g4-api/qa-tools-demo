@@ -14,6 +14,8 @@ storyKey: GAR-1
 status: draft
 ---
 
+# Approved tests synchronize to Xray, map to their story, and produce a coverage and PR package
+
 ## Test Specifications
 
 Verify the delivery half of the lifecycle. An approved test case is synchronized to Xray and mapped to

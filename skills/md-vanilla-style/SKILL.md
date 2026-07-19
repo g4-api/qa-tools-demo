@@ -14,9 +14,8 @@ When another skill defines an artifact template, follow that template and apply 
 
 ## Document structure
 
-- Use exactly one level-one heading in a document without YAML frontmatter.
-- When YAML frontmatter supplies the document identity, begin the body at level two
-    unless the owning artifact contract requires a level-one heading.
+- Use exactly one level-one heading in every document, including documents with YAML frontmatter.
+- Make the first nonblank body line after optional YAML frontmatter that level-one heading (MD041).
 - Increase heading depth by one level at a time. Never jump from `##` to `####`.
 - Keep one blank line before and after headings, lists, tables, block quotes, and fenced blocks.
 - End every file with exactly one newline.
@@ -27,6 +26,7 @@ When another skill defines an artifact template, follow that template and apply 
 
 - Use YAML only for metadata frontmatter when the owning artifact requires it.
 - Start frontmatter on the first line with `---` and close it with the next standalone `---`.
+- Treat frontmatter as metadata for MD041; require the first nonblank line after it to be the document's level-one heading.
 - Keep all content after the closing marker as readable Markdown.
 - Do not place YAML, JSON, or serialized object blocks in the body merely to store document content.
 - Use fenced data formats in the body only when the document is explicitly teaching or demonstrating that format.
@@ -89,6 +89,7 @@ Example:
 When authoring QA artifacts:
 
 - Keep requirement and test metadata in YAML frontmatter only when the owning skill requires metadata.
+- Use the metadata title or summary as the single level-one body heading so identity remains readable and consistent.
 - Render specifications, setup, test steps, test data, expected results, teardown, coverage,
     and review findings as readable Markdown.
 - Enumerate each requirement and criterion while retaining its stable ID.

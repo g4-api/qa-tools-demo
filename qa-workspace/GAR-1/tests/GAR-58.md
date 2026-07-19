@@ -14,6 +14,8 @@ storyKey: GAR-1
 status: draft
 ---
 
+# Requirements decompose into atomic statements that yield structured, review-scored test cases
+
 ## Test Specifications
 
 Verify the authoring half of the lifecycle. A requirement source is decomposed into atomic, testable

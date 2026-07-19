@@ -145,12 +145,35 @@ def lint_fences(lines: list[str], body_start: int, errors: list[str]) -> set[int
     return fenced_lines
 
 
+def lint_first_heading(lines: list[str], body_start: int, errors: list[str]) -> None:
+    """Require the first nonblank body line to be a top-level heading."""
+
+    for index in range(body_start, len(lines)):
+        if not lines[index].strip():
+            continue
+        match = HEADING_PATTERN.match(lines[index])
+        if match is None or len(match.group(1)) != 1:
+            add_error(
+                errors,
+                index + 1,
+                "first body line must be a top-level heading (MD041)",
+            )
+        return
+
+    add_error(
+        errors,
+        body_start + 1,
+        "document body has no top-level heading (MD041)",
+    )
+
+
 def lint_headings(
     lines: list[str], body_start: int, fenced_lines: set[int], errors: list[str]
 ) -> None:
     """Validate heading hierarchy and surrounding blank lines."""
 
     previous_level = 0
+    top_level_count = 0
     for index in range(body_start, len(lines)):
         if index in fenced_lines:
             continue
@@ -158,6 +181,10 @@ def lint_headings(
         if not match:
             continue
         level = len(match.group(1))
+        if level == 1:
+            top_level_count += 1
+            if top_level_count > 1:
+                add_error(errors, index + 1, "document has multiple top-level headings")
         if previous_level and level > previous_level + 1:
             add_error(errors, index + 1, "heading level skips an intermediate level")
         previous_level = level
@@ -263,6 +290,7 @@ def lint_file(path: Path) -> list[str]:
 
     body_start = lint_frontmatter(lines, errors)
     fenced_lines = lint_fences(lines, body_start, errors)
+    lint_first_heading(lines, body_start, errors)
     lint_headings(lines, body_start, fenced_lines, errors)
     lint_enumeration(lines, body_start, fenced_lines, errors)
     lint_tables(lines, body_start, fenced_lines, errors)
