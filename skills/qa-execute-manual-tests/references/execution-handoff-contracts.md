@@ -44,7 +44,8 @@ Pass these fields to `qa-author-defects` only after explicit tester approval:
 | Approval | Yes | Explicit approval to create a defect from the recorded facts. |
 | Analysis response | Yes | Product-defect classification and supporting analysis. |
 | Execution reference | Yes | Journal and execution identifier. |
-| Test and step references | Yes | Reproduction source. |
+| Originating Xray Test key | Yes | Jira key that must receive the defect relationship. |
+| Step reference | Yes | Authored reproduction source within the originating Test. |
 | Requirement references | Yes | Affected expected behavior. |
 | Environment and build | Yes | Reproduction environment. |
 | Evidence references | No | Available supporting artifacts. |
@@ -54,15 +55,18 @@ Pass these fields to `qa-author-defects` only after explicit tester approval:
 
 Require `qa-author-defects` to return:
 
-1. Status: `created`, `drafted`, or `failed`.
+1. Status: `created-and-linked`, `created-unlinked`, `drafted`, or `failed`.
 2. Defect key when created.
 3. Internal identifier when returned by the tool.
 4. Direct link when returned by the tool.
 5. Final summary.
-6. Linked execution, test, and requirement references.
-7. Failure reason when status is `failed`.
+6. Execution, originating Test, step, and requirement references.
+7. Jira link type, originating Test key, created Bug key, and direction.
+8. Link verification status, observed timestamp, and read-back evidence.
+9. Failure reason and recovery action when status is `created-unlinked` or `failed`.
 
-Record the receipt in the journal. Never infer a successful creation from a partial or invalid response.
+Only `created-and-linked` is successful. Record the receipt in the journal. Never infer a verified Jira relationship from
+a readable reference, a partial response, or a created Bug key.
 
 ## Xray synchronization request
 

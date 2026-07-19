@@ -117,8 +117,13 @@ After analysis, ask the tester to choose the next action. Supported decisions ar
 - end the execution.
 
 Invoke `qa-author-defects` only when the tester explicitly approves creation and analysis classifies the result as a
-product defect. Pass the approved defect handoff. Record only the returned receipt; do not draft or synchronize the
-defect directly.
+product defect. Pass the originating Xray Test key and the complete approved defect handoff. Record only the returned
+receipt; do not draft, synchronize, or link the defect directly.
+
+Accept `created-and-linked` as the only successful defect receipt. When the receipt is `created-unlinked`, checkpoint the
+created Bug key, relationship failure, and recovery action, then return control to `qa-author-defects` for idempotent link
+recovery. The existing tester approval remains valid while recovery introduces no new material value. Never create a
+replacement Bug or treat a readable test reference as a Jira relationship.
 
 When analysis identifies an incorrect expected result or needed test change, return a recommendation for a separate
 `qa-create-test-cases` refactoring run. Never invoke the authoring pipeline from the active execution.
@@ -173,6 +178,9 @@ explicitly blocks or ends the run and the journal records the reason and next ac
 
 When Xray synchronization was requested, complete only after the journal contains a successful receipt or an explicit
 sync failure with its next action.
+
+When the tester approved a product defect, complete only after its receipt is `created-and-linked`, or after the journal
+records a tester-owned decision to end or block the execution with the unresolved association and its next action.
 
 Return the execution identifier, test identifier, status, result counts, Xray execution receipt, linked defects, journal
 path, and next action.

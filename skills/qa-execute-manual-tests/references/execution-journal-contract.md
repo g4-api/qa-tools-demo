@@ -85,6 +85,15 @@ For Xray synchronization, record:
 5. Confirmed Test Run status or `None`.
 6. Xray warnings or `None`.
 
+For each linked defect, record:
+
+1. Defect key.
+2. Originating Xray Test key.
+3. Link type `Defect`.
+4. Direction Test `created` Bug.
+5. Verification status and observed timestamp.
+6. Read-back evidence or the exact failure reason and recovery action.
+
 Only `qa-execute-manual-tests` writes synchronization receipts into the journal. Never persist PAT values, authorization
 headers, or Basic-authentication material.
 
@@ -96,6 +105,7 @@ headers, or Basic-authentication material.
 4. Store references to evidence instead of embedding binary content.
 5. Store no hidden reasoning, unnecessary conversation, credentials, tokens, or unrelated personal data.
 6. Run Markdown compliance after every write and require score 100 with zero linter errors.
+7. Do not mark an approved product-defect flow complete while its receipt is `created-unlinked`.
 
 ## Resume rules
 

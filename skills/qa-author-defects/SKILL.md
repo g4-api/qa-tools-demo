@@ -2,18 +2,20 @@
 name: qa-author-defects
 description: >-
   Draft a complete defect from an approved product-defect analysis, collect available execution and requirement context,
-  validate an exact Jira Bug payload, create the defect after applicable approval, and return a synchronization receipt.
-  Use only after manual failure analysis recommends a product defect and the tester explicitly approves defect creation.
+  validate exact Jira Bug and issue-link payloads, create the defect after applicable approval, verify its mandatory link
+  to the originating Xray Test, and return a synchronization receipt. Use only after manual failure analysis recommends
+  a product defect and the tester explicitly approves defect creation.
 ---
 
 # QA Author Defects
 
 ## Purpose
 
-Create a complete, evidence-grounded defect with minimal tester effort and synchronize it to Jira.
+Create a complete, evidence-grounded defect with minimal tester effort, synchronize it to Jira, and verify its association
+with the originating Xray Test.
 
-Own the defect draft, exact external mutation, and returned receipt. Do not determine root cause, change the test or
-requirement, or update the execution journal.
+Own the defect draft, Jira Bug creation, defect-to-Test issue link, read-back verification, and returned receipt. Do not
+determine root cause, change the test or requirement, or update the execution journal.
 
 ## Required resources
 
@@ -33,7 +35,7 @@ Proceed only when all conditions are true:
 
 1. The tester explicitly approved defect creation.
 2. `qa-analyze-test-failure` classified the result as `product-defect`.
-3. The failed execution, test, and step are identifiable.
+3. The failed execution, originating Xray Test key, and step are identifiable.
 4. The explicit Jira destination project is known.
 
 Return control without mutation when a precondition is missing. Do not broaden approval or infer a destination project.
@@ -43,7 +45,7 @@ Return control without mutation when a precondition is missing. Do not broaden a
 Collect available facts before asking the tester:
 
 1. Requirement and story references.
-2. Test identifier, specification, setup, data, steps, and expected results.
+2. Originating Xray Test key, specification, setup, data, steps, and expected results.
 3. Execution identifier, timestamps, actual result, and execution history.
 4. Environment, build, configuration, and prerequisite facts.
 5. Analysis classification, confidence, reasoning, and evidence references.
@@ -71,9 +73,27 @@ to the tester and ask whether to link or proceed. Never create a duplicate silen
 7. Show the exact payload and request approval when a new material value or choice is required.
 8. Execute the exact Jira create-issue tool.
 9. Validate the returned key, identifier, and link when the tool contract provides them.
-10. Return a defect receipt to `qa-execute-manual-tests`.
+10. Preserve the validated Bug key as the recovery anchor; never create the Bug again during link recovery.
+11. Inspect the live Jira issue-link and issue-read schemas.
+12. Search for the required `Defect` relationship between the originating Xray Test and the created Bug.
+13. Create the relationship only when the equivalent relationship does not already exist.
+14. Read both issues back and verify the link type, issue keys, and direction.
+15. Return a defect receipt to `qa-execute-manual-tests`.
 
-Never report success or update the local draft with a Jira key after a failed or invalid response.
+The approved operation is successful only when Bug creation and link verification both succeed. Creating a Bug without a
+verified originating-Test relationship is a partial result, not success.
+
+## Association and recovery
+
+Use the canonical semantic relationship defined by the Jira defect tool contract. The originating Xray Test is the source,
+the created Bug is the target, and the supported Jira link type is `Defect`.
+
+The tester's defect-creation approval covers this mandatory relationship when all values derive from the approved failure
+context. Do not request a second approval merely to establish or verify it.
+
+Before every link mutation, search or read the relevant Jira issues. If an equivalent link already exists, skip mutation
+and verify it. After a timeout or ambiguous response, read Jira before retrying. Never recreate the Bug or duplicate the
+link during recovery.
 
 ## Local artifact boundary
 
@@ -97,8 +117,10 @@ not product defects or execution results.
 
 Complete with one receipt status:
 
-- `created` with a validated defect key and available identifier and link,
+- `created-and-linked` with a validated defect key and verified originating-Test relationship,
+- `created-unlinked` with the created defect key, exact association failure, and recovery action,
 - `drafted` when the approved local artifact exists but external creation did not run, or
 - `failed` with the exact failure reason and no invented identifier.
 
-Return the final summary plus execution, test, step, and requirement references to the execution skill.
+Only `created-and-linked` is successful. Return the final summary, association receipt, and execution, test, step, and
+requirement references to the execution skill.

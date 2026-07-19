@@ -8,6 +8,10 @@ executionId: EXEC-000
 step: 1
 requirements:
   - REQ-000
+jiraLinkType: Defect
+jiraLinkDirection: test-created-defect
+jiraLinkStatus: pending
+jiraLinkVerifiedAt: null
 createdAt: REPLACE_WITH_OBSERVED_TIMESTAMP
 updatedAt: REPLACE_WITH_OBSERVED_TIMESTAMP
 ---
@@ -63,6 +67,15 @@ Replace with the concise observed problem.
 2. Requirement: `REQ-000`.
 3. Test: `TEST-000`.
 4. Execution: `EXEC-000`.
+
+## Jira Association
+
+1. Originating Xray Test: `TEST-000`.
+2. Created Bug: None.
+3. Link type: `Defect`.
+4. Direction: Test `created` Bug.
+5. Verification status: Pending.
+6. Read-back evidence: None.
 
 ## Attachments
 

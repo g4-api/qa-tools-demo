@@ -15,7 +15,8 @@ Create these readable sections in order:
 9. Evidence.
 10. Analysis Summary.
 11. Relevant References.
-12. Attachments.
+12. Jira Association.
+13. Attachments.
 
 Enumerate every environment fact, precondition, reproduction step, expected result, actual observation, impact, evidence
 reference, analysis fact, related reference, and attachment. Use `None` only when an optional collection is empty.
@@ -31,7 +32,9 @@ reference, analysis fact, related reference, and attachment. Use `None` only whe
 7. Reference evidence by stable path, link, timestamp, or identifier.
 8. Include analysis classification and confidence as analysis, not observation.
 9. Include story, requirement, test, execution, repository, documentation, and related-defect references when available.
-10. Never include credentials, access tokens, personal data unrelated to reproduction, or hidden reasoning.
+10. Record the Jira link type, issue keys, direction, status, and read-back evidence in Jira Association.
+11. Never treat readable references as proof of a Jira issue relationship.
+12. Never include credentials, access tokens, personal data unrelated to reproduction, or hidden reasoning.
 
 ## Metadata
 
@@ -41,12 +44,16 @@ For a persistent Markdown defect artifact, keep YAML only in frontmatter. Use th
 | --- | --- | --- |
 | `id` | String | Draft identifier until Jira returns a real key. |
 | `jiraKey` | String or null | Set only from a validated successful response. |
-| `status` | String | `drafted`, `created`, or `failed`. |
+| `status` | String | `drafted`, `created-and-linked`, `created-unlinked`, or `failed`. |
 | `storyId` | String | Owning story identifier. |
-| `testId` | String | Failed test identifier. |
+| `testId` | String | Originating Xray Test key. |
 | `executionId` | String | Source execution identifier. |
 | `step` | Integer | Failed authored step number. |
 | `requirements` | Array of strings | Stable affected requirement identifiers. |
+| `jiraLinkType` | String | Exact link type `Defect`. |
+| `jiraLinkDirection` | String | Stable semantic value `test-created-defect`. |
+| `jiraLinkStatus` | String | `pending`, `verified`, or `failed`. |
+| `jiraLinkVerifiedAt` | String or null | Observed verification timestamp, otherwise null. |
 | `createdAt` | String | Observed ISO 8601 timestamp. |
 | `updatedAt` | String | Observed ISO 8601 timestamp. |
 
@@ -54,11 +61,13 @@ For a persistent Markdown defect artifact, keep YAML only in frontmatter. Use th
 
 Return these values to the execution skill:
 
-1. Status.
+1. Status: `created-and-linked`, `created-unlinked`, `drafted`, or `failed`.
 2. Final summary.
 3. Jira key when created.
 4. Internal identifier when returned.
 5. Direct link when returned.
 6. Local artifact path when written.
 7. Execution, test, step, and requirement references.
-8. Failure reason when status is `failed`.
+8. Jira link type, originating Test key, created Bug key, and direction.
+9. Link verification status, observed timestamp, and read-back evidence.
+10. Failure reason and recovery action when status is `created-unlinked` or `failed`.
