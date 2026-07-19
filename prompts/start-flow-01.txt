@@ -1,0 +1,3 @@
+Start the **test-case creation workflow** for requirement `<REQUIREMENT_ID>`.
+Read and analyze the requirement, suggest the test coverage, and wait for my approval.
+After approval, create the branch and tests, complete the review loop, synchronize the tests with Xray, commit each test separately, publish the branch, and create the pull request.
