@@ -1,0 +1,4 @@
+interface:
+  display_name: "Execution Review Orchestrator"
+  short_description: "Coordinate journal analysis and review"
+  default_prompt: "Use $qa-orchestrate-execution-review to answer my question and report all execution problems."
