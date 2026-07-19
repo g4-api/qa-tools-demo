@@ -1,0 +1,3 @@
+Start the **test-execution workflow** in step-by-step mode for test `<TEST_ID>`.
+Environment: `<ENVIRONMENT>`
+Prepare the Xray execution and journal, guide me through the test, capture the failed step and evidence, open and link the bug, synchronize the failure with Xray, and complete the failure package.

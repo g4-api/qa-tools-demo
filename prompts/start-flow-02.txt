@@ -1,0 +1,3 @@
+Start the **test-execution workflow** in step-by-step mode for test `<TEST_ID>`.
+Environment: `<ENVIRONMENT>`
+Prepare the Xray execution and journal, guide me through both tests step by step, synchronize the results and evidence, and complete the passing execution package.
