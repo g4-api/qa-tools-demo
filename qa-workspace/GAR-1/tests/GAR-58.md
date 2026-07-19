@@ -1,6 +1,7 @@
 ---
 id: GAR-58
 xrayKey: GAR-58
+xrayLink: https://qa-webinar.atlassian.net/browse/GAR-58
 type: Manual
 summary: Requirements decompose into atomic statements that yield structured, review-scored test cases
 priority: High
@@ -14,7 +15,7 @@ storyKey: GAR-1
 status: draft
 ---
 
-# Requirements decompose into atomic statements that yield structured, review-scored test cases
+# Test Case: [GAR-58](https://qa-webinar.atlassian.net/browse/GAR-58)
 
 ## Test Specifications
 

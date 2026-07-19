@@ -167,6 +167,47 @@ def lint_first_heading(lines: list[str], body_start: int, errors: list[str]) -> 
     )
 
 
+def get_heading_level(line: str) -> int | None:
+    """Return the ATX heading level or None when the line is not a heading."""
+
+    match = HEADING_PATTERN.match(line)
+    return len(match.group(1)) if match else None
+
+
+def lint_top_level_heading(
+    level: int, index: int, top_level_count: int, errors: list[str]
+) -> int:
+    """Validate top-level heading uniqueness and return the updated count."""
+
+    if level != 1:
+        return top_level_count
+
+    top_level_count += 1
+    if top_level_count > 1:
+        add_error(errors, index + 1, "document has multiple top-level headings")
+    return top_level_count
+
+
+def lint_heading_progression(
+    previous_level: int, level: int, index: int, errors: list[str]
+) -> None:
+    """Validate that a heading does not skip an intermediate level."""
+
+    if previous_level and level > previous_level + 1:
+        add_error(errors, index + 1, "heading level skips an intermediate level")
+
+
+def lint_heading_spacing(
+    lines: list[str], body_start: int, index: int, errors: list[str]
+) -> None:
+    """Validate blank lines immediately before and after one heading."""
+
+    if index > body_start and lines[index - 1].strip():
+        add_error(errors, index + 1, "heading is not preceded by a blank line")
+    if index + 1 < len(lines) and lines[index + 1].strip():
+        add_error(errors, index + 1, "heading is not followed by a blank line")
+
+
 def lint_headings(
     lines: list[str], body_start: int, fenced_lines: set[int], errors: list[str]
 ) -> None:
@@ -177,21 +218,15 @@ def lint_headings(
     for index in range(body_start, len(lines)):
         if index in fenced_lines:
             continue
-        match = HEADING_PATTERN.match(lines[index])
-        if not match:
+        level = get_heading_level(lines[index])
+        if level is None:
             continue
-        level = len(match.group(1))
-        if level == 1:
-            top_level_count += 1
-            if top_level_count > 1:
-                add_error(errors, index + 1, "document has multiple top-level headings")
-        if previous_level and level > previous_level + 1:
-            add_error(errors, index + 1, "heading level skips an intermediate level")
+        top_level_count = lint_top_level_heading(
+            level, index, top_level_count, errors
+        )
+        lint_heading_progression(previous_level, level, index, errors)
+        lint_heading_spacing(lines, body_start, index, errors)
         previous_level = level
-        if index > body_start and lines[index - 1].strip():
-            add_error(errors, index + 1, "heading is not preceded by a blank line")
-        if index + 1 < len(lines) and lines[index + 1].strip():
-            add_error(errors, index + 1, "heading is not followed by a blank line")
 
 
 def lint_enumeration(

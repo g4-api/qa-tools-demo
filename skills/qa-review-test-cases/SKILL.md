@@ -7,7 +7,8 @@ description: Score Manual Xray test-case files against a fixed weighted QA rubri
 
 ## Purpose
 
-This skill is the "review" stage of the create / review / orchestrate trio. It scores each Manual test-case file, decides pass or fail against a strict per-test gate, and routes issues back to the owning create skill.
+This skill is the "review" stage of the create / review / orchestrate trio. It scores each Manual test-case file, decides
+pass or fail against a strict per-test gate, and routes issues back to the owning create skill.
 
 This skill is a pure scorer and reporter. It never edits test files.
 
@@ -19,7 +20,9 @@ This skill must:
 5. route each issue to `qa-create-test-cases`,
 6. emit a clear pass or fail contract that the orchestrator can act on.
 
-For every test, also invoke `md-code-compliance-review` in report-only mode after reading `md-vanilla-style`. Run the Markdown linter and treat its result as a separate flawless gate. Route Markdown fixes to `qa-create-test-cases`; this review skill remains read-only.
+For every test, also invoke `md-code-compliance-review` in report-only mode after reading `md-vanilla-style`. Run the
+Markdown linter and treat its result as a separate flawless gate. Route Markdown fixes to `qa-create-test-cases`; this
+review skill remains read-only.
 
 ## Use this skill when
 
@@ -30,14 +33,16 @@ Use this skill when the task is about:
 - deciding whether test cases meet the quality gate
 - feeding the automated fix loop driven by `qa-orchestrate-test-cases`
 
-Do not use this skill to author or fix tests, or to sync to Xray. Fixes belong to `qa-create-test-cases`; sync belongs to `qa-xray-sync`.
+Do not use this skill to author or fix tests, or to sync to Xray. Fixes belong to `qa-create-test-cases`; sync belongs to
+`qa-xray-sync`.
 
 ## Standard anchoring
 
 By default this skill anchors its expectations to **General best practice** for test design and documentation.
 
 If the user selects a standard, anchor terminology and technique expectations to it instead:
-- **ISTQB** — ISTQB glossary and test-design techniques (for example equivalence partitioning, boundary value analysis, decision tables, state transition).
+- **ISTQB** — ISTQB glossary and test-design techniques, such as equivalence partitioning, boundary value analysis,
+  decision tables, and state transition.
 - **ISTQB + ISO/IEC/IEEE 29119** — the above plus ISO/IEC/IEEE 29119 documentation structure and coverage expectations.
 
 The chosen standard is fixed for the session once execution starts.
@@ -45,7 +50,8 @@ The chosen standard is fixed for the session once execution starts.
 ## Execution mode
 
 - **Standalone**: may present its findings interactively for a one-off audit.
-- **Inside the orchestrated loop**: runs non-interactively. It scores, reports, and routes without asking for approval, because `qa-orchestrate-test-cases` owns the automated create/review/fix cycle that repeats until the goal is met.
+- **Inside the orchestrated loop**: runs non-interactively. It scores, reports, and routes without asking for approval
+  because `qa-orchestrate-test-cases` owns the automated create/review/fix cycle.
 
 ## Inputs
 
@@ -60,7 +66,7 @@ The chosen standard is fixed for the session once execution starts.
 Score each test on every dimension from 0 to 100, then compute the weighted total.
 
 | Dimension | Weight |
-|---|---:|
+| --- | ---: |
 | Requirement coverage & traceability | 20 |
 | Step atomicity & clarity | 15 |
 | Expected-result verifiability | 15 |
@@ -74,24 +80,30 @@ Score each test on every dimension from 0 to 100, then compute the weighted tota
 
 Weights are fixed by default. Do not ask the user to change them.
 
-If the user asks to change a weight, guide them, apply the new weights for this session only, and require that the weights still sum to 100.
+If the user asks to change a weight, guide them, apply the new weights for this session only, and require that the weights
+still sum to 100.
 
 ### Dimension meaning
 
-- **Requirement coverage & traceability** — the test maps to real `REQ-###` IDs; coverage gaps in `traceability.md` count against the story.
+- **Requirement coverage & traceability** — the test maps to real `REQ-###` IDs; coverage gaps in `traceability.md` count
+  against the story.
 - **Step atomicity & clarity** — one clear action per step; unambiguous wording.
 - **Expected-result verifiability** — every step's expected result is observable and checkable.
 - **Negative/edge coverage** — invalid, boundary, and error conditions are exercised where relevant.
-- **Xray-structure compliance** — frontmatter and structured setup/step/teardown shapes can map to the exact Xray mutation schemas; every step has `action` and a non-empty `expectedResults` array; mandatory fields are present.
+- **Xray-structure compliance** — frontmatter and structured setup, step, and teardown shapes map to the exact Xray
+  mutation schemas. Every step has `action` and a non-empty `expectedResults` array. The filename, identity metadata,
+  and level-one heading satisfy the identity contract.
 - **Field completeness** — configured template fields are populated and valid.
-- **Data adequacy** — optional local `data`, or the `action` itself, provides sufficient realistic inputs without introducing an unsupported top-level Xray property.
+- **Data adequacy** — optional local `data`, or the `action` itself, provides sufficient realistic inputs without
+  introducing an unsupported top-level Xray property.
 - **Consistency / no duplication** — no contradictory or duplicated tests; consistent terminology and IDs.
 
 ## Gate
 
 Every test must score strictly greater than 95 on its weighted total.
 
-A single test at or below 95 fails the whole story. A Markdown score below 100 or any Markdown linter error also fails that test. Both gates are per test, not aggregate.
+A single test at or below 95 fails the whole story. A Markdown score below 100 or any Markdown linter error also fails
+that test. Both gates are per test, not aggregate.
 
 ## Scoring guidance
 
@@ -102,6 +114,17 @@ A single test at or below 95 fails the whole story. A Markdown score below 100 o
 
 Scores must reflect real quality, not optimism.
 
+### Identity checks
+
+Apply these checks within Xray-structure compliance:
+
+1. Require the filename stem and `id` to match.
+2. For an unsynchronized test, require null `xrayKey` and `xrayLink` plus `# Test Case: <AGENT-ID>`.
+3. For a synchronized test, require `id`, `xrayKey`, and the displayed heading key to match.
+4. Require a non-empty `xrayLink` and exact `# Test Case: [<XRAY-KEY>](<xrayLink>)` for a synchronized test.
+5. Fail guessed, mismatched, stale, or missing links and route the issue to `qa-xray-sync` for reconciliation.
+6. Keep `summary` as the scenario; do not require the identity heading to duplicate it.
+
 ## Output contract
 
 Always emit a complete scoring table for each reviewed test. Do not replace per-test tables with an aggregate table.
@@ -110,7 +133,7 @@ Always emit a complete scoring table for each reviewed test. Do not replace per-
 ### <test-id> scoring table
 
 | Dimension | Weight | Score | Status |
-|---|---:|---:|---|
+| --- | ---: | ---: | --- |
 | Requirement coverage & traceability | 20 | <0-100> | PASS or FAIL |
 | Step atomicity & clarity | 15 | <0-100> | PASS or FAIL |
 | Expected-result verifiability | 15 | <0-100> | PASS or FAIL |
@@ -131,7 +154,9 @@ Issues (route to qa-create-test-cases):
 **Adjustments Needed**: true or false
 ```
 
-Set Per-test result to PASS only when QA weighted total is strictly greater than 95, Markdown compliance is exactly 100, and Markdown linter errors equal zero. Issues must be concrete enough for `qa-create-test-cases` to fix without re-analysis.
+Set Per-test result to PASS only when QA weighted total is strictly greater than 95, Markdown compliance is exactly 100,
+and Markdown linter errors equal zero. Issues must be concrete enough for `qa-create-test-cases` to fix without
+re-analysis.
 
 After all per-test tables, begin the machine-readable decision with exactly one of:
 
@@ -145,9 +170,12 @@ Does not comply. One or more tests failed the QA or Markdown gate.
 
 ## Routing rules
 
-- All fixable issues route to `qa-create-test-cases`.
+- Test content, structure, and unsynchronized identity issues route to `qa-create-test-cases`.
+- A synchronized test with a stale, missing, guessed, or mismatched `xrayKey`, `xrayLink`, filename, or linked heading
+  routes to `qa-xray-sync` for reconciliation.
 - Markdown issues route to `qa-create-test-cases` with exact file line numbers from `md-code-compliance-review`.
-- A coverage gap with no matching requirement routes to `qa-decompose-requirements`, because the missing requirement must exist before a test can cover it.
+- A coverage gap with no matching requirement routes to `qa-decompose-requirements`, because the missing requirement must
+  exist before a test can cover it.
 
 ## Hard constraints
 
@@ -162,7 +190,8 @@ Does not comply. One or more tests failed the QA or Markdown gate.
 
 ## Completion condition
 
-This skill is complete for a run when it has emitted a valid pass or fail contract with every per-test score table. The story is only cleared when the decision states:
+This skill is complete for a run when it has emitted a valid pass or fail contract with every per-test score table. The
+story is only cleared when the decision states:
 
 ```text
 Complies with all rules. All tests exceed 95 and all Markdown files are flawless.

@@ -89,13 +89,14 @@ Ask only the ones the prompt left open:
 ## Test-case file format
 
 Each test file is readable Markdown with one YAML metadata frontmatter block. YAML ends at the closing frontmatter marker;
-do not use YAML or serialized step objects in the body. After frontmatter, use the exact `summary` value as the single
-level-one heading and first nonblank body line.
+do not use YAML or serialized step objects in the body. After frontmatter, use the test's stable ID as the single
+level-one identity heading and first nonblank body line. Keep the test scenario in `summary`, not in the heading.
 
 ````markdown
 ---
 id: AGENT-000            # internal; replaced by xrayKey after sync
 xrayKey: null            # filled by qa-xray-sync
+xrayLink: null           # filled from the validated Xray response
 type: Manual
 summary: <required>
 priority: <configurable>
@@ -110,7 +111,7 @@ storyKey: PROJ-123
 status: draft
 ---
 
-# <required summary>
+# Test Case: AGENT-000
 
 ## Test Specifications
 <detailed test purpose, scope, and acceptance behavior>
@@ -150,12 +151,21 @@ YAML; `qa-xray-sync` folds it into the action because the mutation schemas have 
 ### Mandatory fields (never optional)
 
 - `summary`
-- one level-one body heading that exactly matches `summary`
+- one level-one identity heading derived from `id`, `xrayKey`, and `xrayLink`
 - `type: Manual`
 - at least one numbered step with a non-empty Action and one or more numbered Expected results
 
 Everything else is template-configurable. When the prompt does not specify a field template, default to the full set and
 let the user confirm or trim it.
+
+### Identity-heading rules
+
+- Before Xray synchronization, use exactly `# Test Case: <AGENT-ID>`.
+- After Xray synchronization, use exactly `# Test Case: [<XRAY-KEY>](<xrayLink>)`.
+- Require the filename stem, `id`, displayed heading ID, and `xrayKey` when present to match.
+- Require `xrayLink` when `xrayKey` is present and use the exact validated Xray response link.
+- Never construct or guess an Xray link from a key.
+- Keep `summary` independent from the heading and continue mapping it to the Xray scenario.
 
 ### Step-authoring rules
 
@@ -169,19 +179,19 @@ let the user confirm or trim it.
 ## Xray mutation compatibility
 
 - `qa-xray-sync` maps `summary` to `scenario`.
-- The level-one body heading is the readable document title and is not forwarded as a mutation property.
+- The level-one body heading and `xrayLink` are local identity fields and are not forwarded as mutation properties.
 - It parses numbered Test Setup, Steps, and Test Teardown actions plus their nested numbered Expected results into the
     identically purposed Xray arrays.
 - It maps `categories`, `priority`, `severity`, `tolerance`, and `customFields` only when present.
 - It obtains `project` from the explicit approved sync destination; do not derive it silently from `storyKey`.
-- Local-only fields (`id`, `xrayKey` on create, `type`, `folder`, `testSets`, `coveredRequirements`, `storyKey`, `status`,
-    and `data`) are never forwarded as top-level mutation properties.
+- Local-only fields (`id`, `xrayKey` on create, `xrayLink`, `type`, `folder`, `testSets`, `coveredRequirements`, `storyKey`,
+    `status`, and `data`) are never forwarded as top-level mutation properties.
 - Preserve each authored Expected results list exactly so sync never has to split prose heuristically.
 
 ## Markdown compliance gate
 
 - Apply `md-vanilla-style` to every generated or changed `.md` artifact.
-- Require the first nonblank body line after frontmatter to be the single level-one heading (MD041).
+- Require the first nonblank body line after frontmatter to be the exact single level-one identity heading (MD041).
 - Invoke `md-code-compliance-review` after each write or fix.
 - Treat a score below 100 or any linter finding as a failed write.
 - Fix formatting without changing domain meaning, then repeat the review.
@@ -202,15 +212,16 @@ let the user confirm or trim it.
 ## Update / refactor / fix mode
 
 - Detect existing test files in `<STORY-ID>/tests/`.
-- Update in place, preserving `id` and `xrayKey`; never duplicate an existing test to make a change.
+- Update in place, preserving `id`, `xrayKey`, `xrayLink`, and the matching identity heading; never duplicate an existing
+    test to make a change.
 - Re-derive steps, fix fields, or refactor structure while keeping identity and traceability intact.
 - If a refactor splits or merges tests, update `traceability.md` and clearly report the ID changes.
 
 ## ID lifecycle
 
 - New tests mint internal `AGENT-###` IDs, story-scoped, starting at `AGENT-000`.
-- `qa-xray-sync` later replaces the internal ID with the real Xray key in the filename and the `xrayKey`/`id` frontmatter
-    for end-to-end traceability.
+- `qa-xray-sync` later replaces the internal ID with the real Xray key in the filename, `xrayKey`/`id` frontmatter, and
+    linked identity heading. It stores the exact returned link in `xrayLink` for end-to-end traceability.
 
 ## Hard constraints
 
@@ -219,7 +230,8 @@ let the user confirm or trim it.
 - Do not duplicate a test to update it.
 - Do not create tests with no covered requirement.
 - Do not omit mandatory fields.
-- Do not emit a test or traceability body whose first nonblank line is not its single level-one heading.
+- Do not emit a test whose first nonblank body line is not its exact ID-based level-one heading.
+- Do not emit a synchronized test with a missing or guessed `xrayLink`.
 - Do not put YAML anywhere except metadata frontmatter.
 - Do not omit action, expected-result, criterion, or requirement enumeration.
 - Do not complete a write below 100 Markdown compliance or with any linter error.
