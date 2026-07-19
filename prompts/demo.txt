@@ -1,0 +1,1 @@
+working on project GAR - get all available epics (start from there), for each epic write some stories, for each stories write tests - use all relevant skills - its ok to create redundunts, this is a garbage project to test the agent behaviour on the task - run with permissions bypass, do not ask me approvals.

@@ -55,11 +55,11 @@ Ask only the ones the prompt left open:
 
 ### Per finalized test
 
-Commit a single test once it is finalized: it passed the greater-than-95 gate, its IDs are updated, and any Xray sync for it is done. The commit therefore already carries the real Xray key when sync ran.
+Commit a single test only after it passed the greater-than-95 QA gate, scored 100 under `md-code-compliance-review`, has zero Markdown linter errors, emitted its complete per-test scoring table, updated its IDs, and completed any Xray sync. The commit therefore carries readable Markdown and the real Xray key when sync ran.
 
 ### Batch meta
 
-Commit `requirements.md` and `traceability.md` as a single meta commit before the pull request is opened.
+Commit `requirements.md` and `traceability.md` as a single meta commit before the pull request is opened, only after both files score 100 with zero Markdown linter errors.
 
 Skip any commit when the target content is unchanged.
 
@@ -86,8 +86,9 @@ Keep the subject concise. Use the real Xray key in the message when the test has
 1. Resolve the MCP, repository, and base branch.
 2. Ensure the story branch exists.
 3. Read the finalized local file content.
-4. Commit that content to the story branch through the MCP with the correct message.
-5. Report the commit (branch, message, committed path, resulting SHA if available).
+4. Verify YAML is confined to metadata frontmatter and verify the recorded Markdown gate is 100 with zero errors.
+5. Commit that content to the story branch through the MCP with the correct message.
+6. Report the commit (branch, message, committed path, resulting SHA if available).
 
 ## Failure handling
 
@@ -102,6 +103,8 @@ Keep the subject concise. Use the real Xray key in the message when the test has
 - Do not commit unchanged content.
 - Do not use non-Conventional-Commit messages.
 - Do not commit a synced test using its old `AGENT-###` id when a real Xray key exists.
+- Do not commit any Markdown artifact below 100 Markdown compliance or with a linter error.
+- Do not commit a test before its complete per-test scoring table was emitted.
 
 ## Completion condition
 

@@ -1,6 +1,6 @@
 ---
 name: qa-orchestrate-test-cases
-description: Drive the end-to-end, self-correcting QA loop that authors Manual Xray test cases one at a time - create, review-fix to greater-than-95, optional per-test Xray sync, ID update, and Git commit - then a batch meta commit and a detailed pull request. Use when a QA engineer wants a full automated run from a requirements decomposition (or an existing test set) through committed, review-ready test artifacts.
+description: Drive the end-to-end, self-correcting QA loop that authors readable Manual Xray Markdown test cases one at a time, enforces flawless md-* compliance plus a greater-than-95 QA score, emits a complete scoring table after each test cycle, optionally syncs to Xray, commits, and opens a pull request. Use for full automated test-authoring or refactoring runs.
 ---
 
 # QA Orchestrate Test Cases
@@ -36,7 +36,7 @@ Test artifacts are first-class code files. This skill treats the authoring loop 
 
 ## The gate
 
-Every test must score strictly greater than 95 on the `qa-review-test-cases` weighted rubric. The gate is per test.
+Every test must score strictly greater than 95 on the `qa-review-test-cases` weighted rubric, score exactly 100 under `md-code-compliance-review`, and have zero Markdown linter errors. The gates are per test.
 
 ## Interaction contract
 
@@ -65,37 +65,42 @@ Ask only the ones the prompt left open:
 
 Before the loop, derive the ordered list of tests to author from the decomposition (via `qa-create-test-cases` coverage planning). The loop then processes that list one test at a time.
 
+Before processing tests, apply `md-vanilla-style` and the `md-code-compliance-review` repair cycle to `requirements.md` and `traceability.md`. Do not start a test while either file is below 100 Markdown compliance or has a linter error.
+
 ## Sequential per-test loop
 
 Run this loop after approval. For each planned test, in order:
 
-1. **Create** — invoke `qa-create-test-cases` to write (or update) the single test.
-2. **Review-fix** — invoke `qa-review-test-cases` to score it; if at or below 95, route its issues back to `qa-create-test-cases` and re-review. Repeat until the test exceeds 95 or the per-test iteration cap is reached.
-3. **Xray sync** *(if enabled and available)* — invoke `qa-xray-sync` for this single test. A new test must call `new_xray_test`; an existing changed test must call `update_xray_test`. The sync skill validates the exact closed-schema payload, executes the call, and then updates the IDs.
-4. **Commit** — invoke `qa-git-commit` to commit the finalized test to `qa/<STORY-ID>-tests`. The commit carries the real Xray key when sync ran, otherwise the `AGENT-###` id.
-5. **Next** — move to the next planned test.
+1. **Create** — invoke `qa-create-test-cases` to write or update one test using YAML metadata frontmatter and readable, enumerated Markdown body text.
+2. **Markdown review-fix** — invoke `md-code-compliance-review`. Route every finding to `qa-create-test-cases`, rerun the linter, and repeat until Markdown is 100 with zero errors.
+3. **QA review-fix** — invoke `qa-review-test-cases`. If QA is at or below 95, route issues to `qa-create-test-cases`, then restart at Markdown review because every content fix must be revalidated by both gates.
+4. **Per-test scoring table** — immediately show the complete final table for this test, including every QA dimension, QA weighted total, Markdown compliance score, Markdown linter error count, iteration count, and PASS status. This table is mandatory and cannot be deferred to the final report.
+5. **Xray sync** *(if enabled and available)* — invoke `qa-xray-sync` for this single test. A new test must call `new_xray_test`; an existing changed test must call `update_xray_test`. The sync skill parses the readable enumerated Markdown, validates the exact closed-schema payload, executes the call, and updates IDs.
+6. **Post-sync Markdown check** — when sync changes the filename, frontmatter, or traceability file, rerun Markdown compliance on every changed `.md` file and require 100 with zero errors.
+7. **Commit** — invoke `qa-git-commit` to commit the finalized test to `qa/<STORY-ID>-tests`. The commit carries the real Xray key when sync ran, otherwise the `AGENT-###` id.
+8. **Next** — move to the next planned test.
 
 After all tests are finalized and committed:
 
-6. **Test Plan** *(if enabled)* — invoke `qa-xray-sync` to create it through `new_xray_test_plan` with its exact validated payload.
-7. **Batch meta commit** — invoke `qa-git-commit` for `requirements.md` and `traceability.md`.
-8. **Pull request** — invoke `qa-github-pr` to open one detailed, ready-for-review PR.
+1. **Test Plan** *(if enabled)* — invoke `qa-xray-sync` to create it through `new_xray_test_plan` with its exact validated payload.
+2. **Batch meta commit** — invoke `qa-git-commit` for flawless `requirements.md` and `traceability.md`.
+3. **Pull request** — invoke `qa-github-pr` to open one detailed, ready-for-review PR.
 
 Track per-test iteration counts and per-step changes for the final report.
 
 ### Refactor / fix runs
 
-When the target is an existing `tests/` set, start each test at the review step (review -> fix -> re-review) instead of fresh creation, then sync/commit as above.
+When the target is an existing `tests/` set, start each test at Markdown review, then run QA review, fixes, both rechecks, the mandatory per-test scoring table, sync, and commit as above.
 
 ## Stop conditions
 
 ### Success
 
-Every test exceeds 95 and is committed, the meta commit is in place, and the PR is opened. Emit the final report.
+Every test passes both gates, every per-test scoring table was shown, every Markdown artifact is flawless, all commits are in place, and the PR is opened. Emit the final report.
 
 ### Iteration cap
 
-A test's per-test cap is reached while still at or below 95. Stop the loop at that test. Report it as a stuck test with its blocking issues, note which earlier tests were already finalized and committed, and hand back to the user. Do not silently continue.
+A test's per-test cap is reached while QA remains at or below 95, Markdown remains below 100, or linter errors remain. Stop at that test, show its current complete scoring table and blocking issues, note earlier finalized tests, and hand back to the user.
 
 ### Real blocker
 
@@ -112,6 +117,8 @@ If a per-test Xray sync or Git commit fails, stop the loop at that test. Report 
 
 Default detail level is per-test scores plus a REQ-to-test coverage summary.
 
+The final report is additive. It never replaces the complete scoring table already emitted at the end of each per-test cycle.
+
 ### Per-test + coverage (default)
 
 ```markdown
@@ -121,9 +128,9 @@ Iterations: <n> (per-test cap <cap>)
 Branch: qa/<STORY-ID>-tests
 PR: <url>
 
-| Test | Final Score | Xray Key | Status |
-|---|---:|---|---|
-| <id> | <0-100> | <key or -> | PASS |
+| Test | QA Score | Markdown Score | Linter Errors | Xray Key | Status |
+|---|---:|---:|---:|---|---|
+| <id> | <0-100> | 100 | 0 | <key or -> | PASS |
 
 Coverage (REQ -> tests):
 | REQ | Tests |
@@ -137,7 +144,7 @@ Adds a per-dimension score table per test and a per-iteration change log.
 
 ### Summary table only (on request)
 
-Just the per-test pass table and overall status.
+Use only the aggregate per-test pass table and overall status in the final report. This option does not suppress the mandatory complete table emitted during each test cycle.
 
 If the run stopped early, replace the header with a clear failure header, list the blocking issues or failure cause, and show which tests were already finalized and committed.
 
@@ -145,6 +152,9 @@ If the run stopped early, replace the header with a clear failure header, list t
 
 - Do not ask for approval between loop steps after the single upfront approval.
 - Do not stop before every test exceeds 95 unless the cap, a real blocker, or a sync/commit failure is hit.
+- Do not advance a test below 100 Markdown compliance or with any Markdown linter error.
+- Do not put YAML anywhere in a test body; only metadata frontmatter may be YAML.
+- Do not defer or omit the complete scoring table at the end of each per-test cycle.
 - Do not continue silently past the iteration cap or past a sync/commit failure.
 - Do not sync to Xray when the user did not enable it or the MCP is unavailable.
 - Do not create or update an Xray test or create a Test Plan outside `qa-xray-sync`; that skill owns exact tool routing and schema validation.

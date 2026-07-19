@@ -1,0 +1,4 @@
+interface:
+  display_name: "Execution Review"
+  short_description: "Summarize execution risk for reviewers"
+  default_prompt: "Use $qa-review-executions to produce a concise management review from execution findings."

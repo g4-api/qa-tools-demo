@@ -1,0 +1,4 @@
+interface:
+  display_name: "Defect Author"
+  short_description: "Draft and synchronize approved defects"
+  default_prompt: "Use $qa-author-defects to draft and synchronize an approved product defect."

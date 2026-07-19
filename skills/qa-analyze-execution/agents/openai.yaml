@@ -1,0 +1,4 @@
+interface:
+  display_name: "Execution Analysis"
+  short_description: "Find evidence-grounded execution problems"
+  default_prompt: "Use $qa-analyze-execution to analyze one execution journal and return verified findings."
