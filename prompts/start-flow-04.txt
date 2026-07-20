@@ -1,0 +1,1 @@
+Analyze the latest recorded manual test executions using the QA execution-analysis skills, keeping the entire review read-only. Resolve all matching execution journals, identify evidence-backed problems, risks, defects, and gaps, then provide a concise management summary with relevant links and one recommended action.
